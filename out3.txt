@@ -1,0 +1,97 @@
+*.new 0
+* -> 0
+
+0 bfr
+
+
+
+0 prm
+0 ff
+0.[timer]
+0.[fulfill]
+0.[reject]
+0 -> *
+
+*.new 1
+* -> 1
+1.[ap]
+1 -> *
+
+*.[]
+*.[]
+
+0.timer(...)
+* -> 0
+0 rslv - bfr
+0 rslv - aft
+
+1.ap(...)
+0 -> 1
+
+1.[noop]
+1.[bound onceWrapper]
+1.[]
+1.[afterWrite]
+1.afterWrite(...)
+1.(...)
+
+0.fulfill##(...)
+[1]
+1 -> 0
+0 aft 0 
+0 -> 1
+]1[
+
+0.fulfill##(...)
+[1]
+1 -> 0
+0 -> 1
+]1[
+
+*.##(...)
+[1]
+1 -> *
+* -> 1
+]1[
+
+1.[bound onceWrapper]
+
+
+1 yld 0 <---------------
+
+
+
+1 bfr
+1 prm
+1 ff
+1.[timer]
+1.[]
+1.[]
+1.afterWrite(...)
+1.(...)
+1.timer(...)
+1 rslv - bfr
+1 rslv - aft
+0.fulfill##(...)
+[1]
+1 -> 0
+0 aft 1 <---------------
+0 -> 1
+]1[
+0.fulfill##(...)
+[1]
+1 -> 0
+0 -> 1
+]1[
+1.##(...)
+1.[bound onceWrapper]
+1 yld 1 
+1 bfr
+1 prm
+1 ff
+1.[timer]
+1.[]
+1.[]
+1.afterWrite(...)
+1.(...)
+1.timer(
