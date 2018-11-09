@@ -1,0 +1,201 @@
+* [_2_]
+* [_4_]
+
+
+*  -=-=-=-=-  ENTER within 0
+* 0.ctxOne(...)
+*                          Queue BFR MT 0 to
+* -> 0 into
+0  -=-=-=-=-  Queue BFR MT 1 within 0
+0 [timer]
+0  -=-=-=-=-  Queue AFT MT 1 within 0
+0                          Set BFR to 0
+0 -> 0 outof
+
+
+*  -=-=-=-=-  ENTER within 1
+* 1.ctxTwo(...)
+*                          Queue BFR MT 2 to
+* -> 1 into
+1  -=-=-=-=-  Queue BFR MT 3 within 1
+
+
+
+
+1  -=-=-=-=-  ENTER within 2
+1 2.ctxTwoOne(...)
+1 -> 2 into
+2  -=-=-=-=-  Queue BFR MT 4 within 2
+2 [timer]
+2  -=-=-=-=-  Queue AFT MT 4 within 2
+2                          Set BFR to 2
+2                          Queue AFT MT 5 to 1
+2 -> 1 outof
+1  -=-=-=-=-  Queue AFT MT 3 within 1
+1 -> 1 outof
+* [exit]
+
+
+
+
+* -> 0                       Run BFR MT 0
+0  -=-=-=-=-    Run BFR MT 1 within 0
+0 <<<_17_>>>
+0 <<<_18_>>>
+0  -=-=-=-=-    Run AFT MT 1 within 0
+
+
+
+
+0 -> 2                       Run BFR MT 2
+2  -=-=-=-=-    Run BFR MT 3 within 1
+
+2  -=-=-=-=-    Run BFR MT 4 within 2
+2 <<<_19_>>>
+2 <<<_20_>>>
+2  -=-=-=-=-    Run AFT MT 4 within 2
+
+2 -> 1                       Run AFT MT 5
+1  -=-=-=-=-    Run AFT MT 3 within 1
+
+
+
+
+1  -=-=-=-=-  ENTER within 0
+1 0.timer(...)
+1                          Queue BFR MT 6 to
+1 -> 0 into
+0  -=-=-=-=-  Queue BFR MT 7 within 0
+0 timer One.100
+0  -=-=-=-=-  Queue AFT MT 7 within 0
+0                          Queue AFT MT 8 to 1
+0 -> 1 outof
+
+
+
+
+1  -=-=-=-=-  ENTER within 2
+1 2.timer(...)
+1 -> 2 into
+2  -=-=-=-=-  Queue BFR MT 9 within 2
+2 timer TwoOne
+2  -=-=-=-=-  Queue AFT MT 9 within 2
+2                          Queue AFT MT 10 to 1
+2 -> 1 outof
+1 -> 1                       Run BFR MT 6
+
+
+
+
+
+
+1  -=-=-=-=-    Run BFR MT 7 within 0
+
+1  -=-=-=-=-  ENTER within 0
+1 0.<<<_17_>>>  (...)
+1 -> 0 into
+0                          Queue PROM MT 11 to 0
+0  -=-=-=-=-  Queue BFR MT 12 within 0
+0  -=-=-=-=-  Queue AFT MT 12 within 0
+0 -> 1 outof
+
+1  -=-=-=-=-    Run AFT MT 7 within 0
+1 -> 1                       Run AFT MT 8
+
+
+
+
+1  -=-=-=-=-    Run BFR MT 9 within 2
+
+1  -=-=-=-=-  ENTER within 2
+1 2.<<<_19_>>>  (...)
+1 -> 2 into
+2                          Queue PROM MT 13 to 2
+2  -=-=-=-=-  Queue BFR MT 14 within 2
+2  -=-=-=-=-  Queue AFT MT 14 within 2
+2 -> 1 outof
+
+
+
+1  -=-=-=-=-    Run AFT MT 9 within 2
+1 -> 1                       Run AFT MT 10
+1 -> 0                       Run PROM MT 11
+
+
+
+0  -=-=-=-=-    Run BFR MT 12 within 0
+0 One should be 'One'
+0 [timer]
+
+
+
+0  -=-=-=-=-    Run AFT MT 12 within 0
+0 -> 2                       Run PROM MT 13
+
+
+
+2  -=-=-=-=-    Run BFR MT 14 within 2
+2 TwoOne should be 'TwoOne'
+
+
+
+2  -=-=-=-=-    Run AFT MT 14 within 2
+2 <<<_21_>>>
+2 <<<_22_>>>
+
+
+
+
+
+
+
+
+
+2  -=-=-=-=-  ENTER within 0
+2 0.timer(...)
+2                          Queue BFR MT 15 to
+2 -> 0 into
+0  -=-=-=-=-  Queue BFR MT 16 within 0
+0 timer One.1
+0  -=-=-=-=-  Queue AFT MT 16 within 0
+0                          Queue AFT MT 17 to 2
+0 -> 2 outof
+
+
+
+
+2 -> 2                       Run BFR MT 15
+2  -=-=-=-=-    Run BFR MT 16 within 0
+
+2  -=-=-=-=-  ENTER within 2
+2 2.<<<_21_>>>  (...)
+2 -> 2 into
+2                          Queue PROM MT 18 to 2
+2  -=-=-=-=-  Queue BFR MT 19 within 2
+2  -=-=-=-=-  Queue AFT MT 19 within 2
+2 -> 2 outof
+
+2  -=-=-=-=-    Run AFT MT 16 within 0
+2 -> 2                       Run AFT MT 17
+2 -> 2                       Run PROM MT 18
+
+
+
+
+2  -=-=-=-=-    Run BFR MT 19 within 2
+2 TwoOne should be 'One'
+
+2  -=-=-=-=-    Run AFT MT 19 within 2
+
+
+
+
+
+
+
+2  -=-=-=-=-  ENTER within *
+2 2.exit(...)
+2                          Queue BFR MT 20 to
+2 -> 2 into
+*  -=-=-=-=-  Queue BFR MT 21 within *
+PS C:\src\eldc>

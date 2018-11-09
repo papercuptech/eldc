@@ -1,0 +1,155 @@
+--------------------------- node 11
+100000
+
+C:\src\eldc>node newBlanks.js
+load: 3.687ms
+{ rss: 20996096,
+  heapTotal: 11223040,
+  heapUsed: 4408792,
+  external: 8680 }
+run: 9.460ms
+{ rss: 21307392,
+  heapTotal: 11223040,
+  heapUsed: 4718912,
+  external: 8680 }
+
+C:\src\eldc>node newBlanks.js
+load: 3.728ms
+{ rss: 20992000,
+  heapTotal: 11223040,
+  heapUsed: 4433624,
+  external: 8680 }
+run: 10.736ms
+{ rss: 21299200,
+  heapTotal: 11223040,
+  heapUsed: 4743744,
+  external: 8680 }
+
+C:\src\eldc>node newBlanks.js
+load: 3.651ms
+{ rss: 20946944,
+  heapTotal: 11223040,
+  heapUsed: 4401560,
+  external: 8680 }
+run: 9.466ms
+{ rss: 21258240,
+  heapTotal: 11223040,
+  heapUsed: 4711680,
+  external: 8680 }
+
+
+
+C:\src\eldc>node newBlanks.js
+load: 5.467ms
+{ rss: 23539712,
+  heapTotal: 11223040,
+  heapUsed: 5992784,
+  external: 8680 }
+run: 11.397ms
+{ rss: 23855104,
+  heapTotal: 11747328,
+  heapUsed: 6302904,
+  external: 8680 }
+
+C:\src\eldc>node newBlanks.js
+load: 5.593ms
+{ rss: 23511040,
+  heapTotal: 11223040,
+  heapUsed: 5992824,
+  external: 8680 }
+run: 11.985ms
+{ rss: 23834624,
+  heapTotal: 11747328,
+  heapUsed: 6302944,
+  external: 8680 }
+
+C:\src\eldc>node newBlanks.js
+load: 5.572ms
+{ rss: 23515136,
+  heapTotal: 11223040,
+  heapUsed: 5976768,
+  external: 8680 }
+run: 11.479ms
+{ rss: 23834624,
+  heapTotal: 11747328,
+  heapUsed: 6286888,
+  external: 8680 }
+
+
+------------------------------------------------- node 6
+
+
+
+C:\src\eldc>node newBlanks.js
+load: 1.826ms
+{ rss: 19714048,
+  heapTotal: 8421376,
+  heapUsed: 3475720,
+  external: 8380 }
+run: 6.083ms
+{ rss: 20111360,
+  heapTotal: 8421376,
+  heapUsed: 3827568,
+  external: 8380 }
+
+C:\src\eldc>node newBlanks.js
+load: 1.123ms
+{ rss: 19673088,
+  heapTotal: 8421376,
+  heapUsed: 3474208,
+  external: 8380 }
+run: 5.930ms
+{ rss: 20021248,
+  heapTotal: 8421376,
+  heapUsed: 3826056,
+  external: 8380 }
+
+C:\src\eldc>node newBlanks.js
+load: 1.752ms
+{ rss: 19660800,
+  heapTotal: 8421376,
+  heapUsed: 3475752,
+  external: 8380 }
+run: 6.279ms
+{ rss: 20037632,
+  heapTotal: 8421376,
+  heapUsed: 3826864,
+  external: 8380 }
+
+
+C:\src\eldc>node newBlanks.js
+load: 2.918ms
+{ rss: 21991424,
+  heapTotal: 10518528,
+  heapUsed: 4085528,
+  external: 8380 }
+run: 7.264ms
+{ rss: 22331392,
+  heapTotal: 10518528,
+  heapUsed: 4437408,
+  external: 8380 }
+
+C:\src\eldc>node newBlanks.js
+load: 3.233ms
+{ rss: 21876736,
+  heapTotal: 10518528,
+  heapUsed: 4085440,
+  external: 8380 }
+run: 7.673ms
+{ rss: 22286336,
+  heapTotal: 10518528,
+  heapUsed: 4437288,
+  external: 8380 }
+
+C:\src\eldc>node newBlanks.js
+load: 3.015ms
+{ rss: 21921792,
+  heapTotal: 10518528,
+  heapUsed: 4085392,
+  external: 8380 }
+run: 7.289ms
+{ rss: 22298624,
+  heapTotal: 10518528,
+  heapUsed: 4437240,
+  external: 8380 }
+

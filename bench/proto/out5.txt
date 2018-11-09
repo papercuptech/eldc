@@ -1,0 +1,109 @@
+* [_2_]
+* [_4_]
+
+* Q EVENT-LOOP
+* PJ QUEUE BFR RUN 0
+* ENTER ctxOne
+* -> 0
+0 [timer]
+0 -> *
+* LEAVE ctxOne
+
+* PJ QUEUE BFR RUN 1
+* ENTER ctxTwo
+* -> 1
+1 [timer]
+1 -> *
+* LEAVE ctxTwo
+* [exit]
+
+*   PJ RUN BFR RUN 0
+* -> 0
+0 <<<_17_>>>
+0 <<<_18_>>>
+
+0   PJ RUN BFR RUN 1
+0 -> 1
+1 <<<_19_>>>
+1 <<<_20_>>>
+
+1 Run EVENT-LOOP
+1 -> *
+
+* Q EVENT-LOOP
+* PJ QUEUE BFR RUN 2
+* ENTER timer
+* -> 0
+0                    timer One.100
+0 -> *
+* LEAVE timer
+
+* PJ QUEUE BFR RUN 3
+* ENTER timer
+* -> 1
+1                    timer Two.1
+1 -> *
+* LEAVE timer
+
+*   PJ RUN BFR RUN 2
+* -> 0
+
+0 PJ QUEUE defer 4-SwitchTo( 0 ) 4
+0 ENTER _17_
+0 LEAVE _17_
+
+0   PJ RUN BFR RUN 3
+0 -> 1
+
+1 PJ QUEUE defer 5-SwitchTo( 1 ) 5
+1 ENTER _19_
+1 LEAVE _19_
+
+1   PJ RUN defer 4-SwitchTo( 0 ) 4
+1 PJ QUEUE 4-SwitchTo( 0 ) 6
+1                            Two should be 'One'
+1 [timer]
+
+1   PJ RUN defer 5-SwitchTo( 1 ) 5
+1 PJ QUEUE 5-SwitchTo( 1 ) 7
+1                         Two.1 should be 'Two.1'
+
+1   PJ RUN 4-SwitchTo( 0 ) 6
+1 -> 0
+0 <<<_21_>>>
+0 <<<_22_>>>
+
+0   PJ RUN 5-SwitchTo( 1 ) 7
+0 -> 1
+
+1 Run EVENT-LOOP
+1 -> *
+
+* Q EVENT-LOOP
+* PJ QUEUE BFR RUN 8
+* ENTER timer
+* -> 1
+1                    timer One.1
+1 -> *
+* LEAVE timer
+
+*   PJ RUN BFR RUN 8
+* -> 1
+
+1 PJ QUEUE defer 7-SwitchTo( 0 ) 9
+1 ENTER _21_
+1 -> 0
+0 -> 1
+1 LEAVE _21_
+
+1   PJ RUN defer 7-SwitchTo( 0 ) 9
+1 PJ QUEUE 7-SwitchTo( 0 ) 10
+1                            Two should be 'One'
+
+1   PJ RUN 7-SwitchTo( 0 ) 10
+1 -> 0
+
+0 Run EVENT-LOOP
+0 -> *
+* Q EVENT-LOOP
+* PJ QUEUE BFR RUN 11

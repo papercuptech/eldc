@@ -8,8 +8,19 @@
 		{
 			"type": "node",
 			"request": "launch",
+			"name": "index",
+			"program": "${workspaceFolder}/index.ts",
+			"sourceMaps": true,
+			"outFiles": [
+				"${workspaceFolder}/**/*.js"
+			]
+		},
+		{
+			"type": "node",
+			"request": "launch",
 			"name": "test",
 			"program": "${workspaceFolder}/test.ts",
+			"sourceMaps": true,
 			"outFiles": [
 				"${workspaceFolder}/**/*.js"
 			]
@@ -18,8 +29,9 @@
 		{
 			"type": "node",
 			"request": "launch",
-			"name": "test1",
-			"program": "${workspaceFolder}/test1.ts",
+			"name": "test2",
+			"program": "${workspaceFolder}/test2.ts",
+			"sourceMaps": true,
 			"outFiles": [
 				"${workspaceFolder}/**/*.js"
 			]

@@ -1,0 +1,280 @@
+* [_2_]
+* [_4_]
+* ctxOne(...)
+* PJ QUEUE INCTX 0
+
+* ctxTwo(...)
+* PJ QUEUE INCTX 1
+*   PJ RUN INCTX 0
+
+* PJ QUEUE BFR RUN 2
+* ENTER ctxOne
+* -> 0
+0 [timer]
+0 -> 0
+* LEAVE ctxOne
+
+*   PJ RUN INCTX 1
+* PJ QUEUE BFR RUN 3
+* ENTER ctxTwo
+* -> 1
+1 [timer]
+---- await schedules??
+1 -> 1
+* LEAVE ctxTwo
+
+*   PJ RUN BFR RUN 2
+* -> 0
+0 <<<_17_>>>
+0 <<<_18_>>>
+
+0   PJ RUN BFR RUN 3
+0 -> 1
+1 <<<_19_>>>
+1 <<<_20_>>>
+
+											1 timer(...)
+											1 PJ QUEUE INCTX 4
+											1 timer(...)
+											1 PJ QUEUE INCTX 5
+
+                      1   PJ RUN INCTX 4
+
+
+
+
+1 PJ QUEUE BFR RUN 6
+1 ENTER timer
+1 -> 0
+0                    timer One.100
+0 -> 1
+1 LEAVE timer
+
+                     1   PJ RUN INCTX 5
+
+
+1 PJ QUEUE BFR RUN 7
+1 ENTER timer
+1                    timer Two
+1 LEAVE timer
+
+
+
+1   PJ RUN BFR RUN 6
+
+1 -> 0
+
+0 _17_(...)
+0 PJ QUEUE EXT SWITCH 8
+0 ENTER _17_
+	ext resolve schedules
+0 LEAVE _17_
+
+
+0   PJ RUN BFR RUN 7
+0 -> 1
+1 _19_(...)
+1 PJ QUEUE EXT SWITCH 9
+1 ENTER _19_
+1 LEAVE _19_
+
+
+1   PJ RUN EXT SWITCH 8
+1 -> 0
+0 One should be 'One'
+0 [timer]
+--- await schedules
+
+
+
+0   PJ RUN EXT SWITCH 9
+0 -> 1
+1 Two should be 'Two'
+
+
+--- ext resolve scheduled run of this continuation
+--- but need a switchTo scheduled before timer Two is ever called
+--- so these get wrapped in correct frame
+1 <<<_21_>>>
+1 <<<_22_>>>
+
+
+
+schedule
+	if(scheduled.length === 0)
+		scheduleJob(run (within this_ fn args))
+
+	push
+
+if isFrameSwitch or scheduled.lenth > 0
+	schedule (within this_ fn args)
+
+if(isFrameSwitch || scheduled.length > 0)
+	schedule(
+	scheduled.push({within, this_, fn, args})
+
+else
+
+if(queue.length) {
+	next = queue.shift()
+	schedule(next)
+}
+
+
+RUN time Two
+
+queue timer Two
+
+			1 PJ QUEUE BFR RUN 7
+			1 ENTER timer
+			1                    timer Two
+			1 LEAVE timer
+
+			schedule timer three
+
+
+RUN timer Three
+queue timer three
+
+			1 PJ QUEUE BFR RUN 7
+			1 ENTER timer
+			1                    timer Two
+			1 LEAVE timer
+
+
+
+RUN timer Four
+queue timer Four
+
+			1 PJ QUEUE BFR RUN 7
+			1 ENTER timer
+			1                    timer Two
+			1 LEAVE timer
+
+
+
+
+
+
+
+
+1 RUN timer One
+1 PJ QUEUE BFR RUN 6
+1 ENTER timer
+1 -> 0
+0                    timer One.100
+--- calls resolve, which shedules _17_
+0 -> 1
+1 LEAVE timer
+
+
+RUN time Two
+
+queue timer Two
+
+			1 PJ QUEUE BFR RUN 7
+			1 ENTER timer
+			1                    timer Two
+			1 LEAVE timer
+
+
+
+1 -> 0
+
+0 _17_(...)
+0 PJ QUEUE EXT SWITCH 8
+0 ENTER _17_
+--- ext schedules continuation ONE
+0 LEAVE _17_
+
+
+
+
+1 PJ QUEUE BFR RUN 7
+1 ENTER timer
+1                    timer Two
+--- resolve, schedules _19_
+1 LEAVE timer
+
+
+--- Continuation ONE
+1   PJ RUN EXT SWITCH 8
+1 -> 0
+0 One should be 'One'
+0 [timer]
+--- runtime creates Promise, then Scheduled calling then to wrap 'ext-contin'
+
+
+
+1   PJ RUN BFR RUN 6
+
+
+0   PJ RUN BFR RUN 7
+0 -> 1
+1 _19_(...)
+1 PJ QUEUE EXT SWITCH 9
+1 ENTER _19_
+--- schedules continuation TWO
+1 LEAVE _19_
+
+
+--- 'ext-continuation'
+--- ext await
+--- but need a switchTo scheduled before timer Two is ever called
+--- so these get wrapped in correct frame
+1 <<<_21_>>>
+1 <<<_22_>>>
+
+
+
+--- Continuation TWO
+0   PJ RUN EXT SWITCH 9
+0 -> 1
+1 Two should be 'Two'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1 timer(...)
+1 PJ QUEUE INCTX 10
+1   PJ RUN INCTX 10
+1 PJ QUEUE BFR RUN 11
+1 ENTER timer
+1 -> 0
+0                    timer One.1
+0 -> 1
+1 LEAVE timer
+1   PJ RUN BFR RUN 11
+1 -> 0
+0 _21_(...)
+0 PJ QUEUE EXT SWITCH 12
+0 ENTER _21_
+0 -> 1
+1 -> 0
+0 LEAVE _21_
+0   PJ RUN EXT SWITCH 12
+0 -> 1
+1 Two should be 'One'
+1 exit(...)
+1 PJ QUEUE INCTX 13
+1   PJ RUN INCTX 13
+1 PJ QUEUE BFR RUN 14
+1 ENTER exit
+1 -> 1

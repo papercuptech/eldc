@@ -1,38 +1,6 @@
 'use strict'
-import 'source-map-support/register'
-
-
-
-import util from 'util'
-import getOwnPropertyDescriptor = Reflect.getOwnPropertyDescriptor;
-
-function pad(width, str, padWith = ' ') {
-	let padded = (str || '').substring(0, width - 1)
-	let padLen = width > padded.length ? width - padded.length : 0
-	while(padLen--)
-		padded += padWith
-	return padded
-}
-export const _plog:string[] = []
-let _stopPlg = false
-export function stopPlg(stop = true) {_stopPlg = stop}
-
-// @ts-ignore
-export function log(...args) {
-	if(_stopPlg) return
-	_plog.push(util.format(pad(4,`${cur()}`) + ': ',...args))
-}
-
-let dbgLog = false
-function dbg(...args) {
-	if(!dbgLog) return
-	log(...args)
-}
-
-
 
 const {
-	assign,
 	create: objCreate,
 	defineProperty,
 	freeze,
@@ -41,22 +9,19 @@ const {
 	getOwnPropertySymbols,
 	getPrototypeOf,
 	keys,
-	setPrototypeOf,
 } = Object
-
 
 function isFn(thing) {return typeof thing === 'function'}
 function isObj(thing) {return thing !== null && typeof thing === 'object'}
 
-const symId = Symbol('eldc-id')
-
 const symDisguised = Symbol('eldc-disguised')
-const symPromiseJob = Symbol('eldc-promise-job')
-const symContextSymbol = Symbol('eldc-context-symbol')
-const symFactory = Symbol('eldc-initialize')
+const symLoopGlobal = Symbol('eldc-loop-global')
+const symEnter = Symbol('eldc-enter')
+const symPromiseJob = Symbol['eldc-promise-job']
 const symFrame = Symbol('eldc-frame')
 
-//export const SymCurrent = Symbol('eldc-current-context')
+class Frame extends Map {}
+let current:Frame|undefined
 
 let global_:any = {}
 try {global_ = global}
@@ -75,316 +40,217 @@ export function setEldcName(name) {
 }
 setEldcName('_$eldc$_')
 
-
-
-
-let nextId = 0
-class Frame {
-	id!:number
-
-	static New(within?:Frame) {
-		const new_ = objCreate(within || null)
-		new_.id = nextId++
-		return new_ as Frame
-	}
+function switchTo(next?:Frame) {
+	if(current === next) return
+	next && next.forEach((nextContext, Context) => {
+		const enter = Context[symEnter]
+		if(!enter) return
+		const currentContext = current && current.get(Context) || Context[symLoopGlobal]
+		if(currentContext === nextContext) return
+		enter.call(nextContext, currentContext)
+	})
+	global_[eldc] = current = next
 }
 
-const loopGlobal = Frame.New()
-let current = loopGlobal
-export function cur(c?) {
-	const frame = arguments.length === 1 ? c : current
-	return frame.id
+Promise.prototype[symPromiseJob] = Promise.prototype.then
+function queuePromiseJob(job) {Promise.resolve()[symPromiseJob](job)}
+
+class PromiseFrameSwitch {
+	frame?:Frame
+	constructor() {queuePromiseJob(() => this.frame && switchTo(this.frame))}
 }
 
-
-const queuePromiseJob = Promise.prototype.then.bind(Promise.resolve())
-
-interface Switcher {
-	(): void
-	to:Frame
-	next?:Switcher
-	isFromPromiseJob:boolean
-}
-let freeSwitchers:Switcher|undefined = undefined
-function getPromiseSwitcher(to, isFromPromiseJob = false) {
-	let switcher:Switcher
-	if(freeSwitchers) {
-		switcher = freeSwitchers
-		freeSwitchers = freeSwitchers.next
-	}
-	else switcher = <Switcher>function switcher() {
-		const switcher_ = <Switcher>switcher
-		const {to, isFromPromiseJob} = switcher_
-		if(current !== to) global_[eldc] = current = to
-		if(isFromPromiseJob) {
-			switcher_.isFromPromiseJob = false
-			queuePromiseJob(switcher_)
-		}
-		else {
-			switcher_.to = loopGlobal
-			switcher_.next = freeSwitchers
-			if(freeSwitchers) freeSwitchers.next = switcher_
-		}
-	}
-	switcher.to = to
-	switcher.isFromPromiseJob = isFromPromiseJob
-	return switcher
-}
-
-function tryRun(fn, this_, args) {
-	tryRun.ex = undefined
-	try {return fn.call(this_, ...args)}
-	catch(ex) {tryRun.ex = ex}
-}
-namespace tryRun {let ex:any}
-
+let firstPromiseFrameSwitch:PromiseFrameSwitch|undefined
 function runIn(within, this_, fn, args) {
-	const isFrameSwitch = current !== within
-	const isPromiseJob = fn[symPromiseJob] === true
+	if(firstPromiseFrameSwitch === undefined)
+		firstPromiseFrameSwitch = new PromiseFrameSwitch()
+
 	const from = current
-	if(isFrameSwitch || isPromiseJob) {
-		queuePromiseJob(getPromiseSwitcher(within, isPromiseJob))
-		global_[eldc] = current = within
-	}
-	const result = tryRun(fn, this_, args)
-	if(isFrameSwitch) {
-		global_[eldc] = current = from
-		queuePromiseJob(getPromiseSwitcher(from))
-	}
-	if(tryRun.ex) throw tryRun.ex
-	return result
-}
+	try {
+		switchTo(within)
+		
+		if(fn[symPromiseJob] === true) queuePromiseJob(() => switchTo(within))
 
+		const result = fn.call(this_, ...args)
 
-export class Context {
-	constructor(properties, initial) {
-		if(!initial) return
-		let propIdx = properties.length
-		while(propIdx--) {
-			const prop = properties[propIdx]
-			this[prop] = initial[prop]
+		if(result instanceof Promise && firstPromiseFrameSwitch !== undefined) {
+			firstPromiseFrameSwitch.to = within
+			firstPromiseFrameSwitch = undefined
 		}
+
+		if(from !== undefined) queuePromiseJob(() => switchTo(from))
+
+		return result		
+	}
+	finally {
+		switchTo(from)
 	}
 }
-let runInNewFrame:Frame = undefined
-export function context(properties, UserContext) {
-	if(isFn(properties)) {
-		UserContext = properties
-		properties = undefined
+
+interface ILifeCycle {
+	create?:((init?:any, parent?:any) => any),
+	top?:((parent?:any) => void),
+	enter?:(() => void)
+}
+interface IContext<T> {
+	(using:T):<R>(fn:(...args) => R) => R
+	<R>(fn:() => R): R
+}
+export default function defineContext<T>(props:T = <any>{}, lifeCycle:ILifeCycle = {}):(T & IContext<T>) {
+	const create = lifeCycle.create || function(props, parent) {
+		const newContext = objCreate(props)
+		newContext.parent = parent
+		return newContext
 	}
-	if(!UserContext) UserContext = class extends Context {}
 
-	if(!UserContext instanceof Context) throw new Error('Must derive from Context')
-
-	const symContext = Symbol(`eldc-ctx-${UserContext.name}`)
-
-	const defaults = objCreate(null)
-	const ownProperties = getOwnPropertyNames(properties || UserContext)
-	const propNames = []
-
-	function ContextFactory(...args) {
-		let fn = args[args.length - 1]
+	function Context(...args) {
+		let fn = args.length && args[args.length - 1]
 		fn = fn && isFn(fn) && fn
-		let initial = args[0]
-		initial = initial && isObj(initial) && initial
+		let init = args[0]
+		init = init && isObj(init) && init || props
 
-		let factories:any[]
-
-		for(let i = 0, len = args.length; i < len; ++i) {
-			const arg = args[i]
-			const factory = arg && arg[symFactory]
-			if(!factory) continue
-			factories = factories || []
-			factories.push(factory)
+		/*
+		let using:any[]
+		const len = args.length - 1
+		for(let i = 0; i < len; ++i) {
+			if(args[i][symLoopGlobal]) using.push(args[i])
 		}
+		*/
 
-		const initialDefaults = assign(objCreate(null), defaults)
-		let hadInitial = false
-		const within = current
-		// run function is synonymous with new Frame.. hmmm
-		function run(fn, args = []) {
-			if(runInNewFrame) {
-				if(initial) {
-					assign(initialDefaults, defaults)
-					assign(initialDefaults, initial)
-					hadInitial = true
-				}
-				else if(hadInitial) {
-					assign(initialDefaults, defaults)
-					hadInitial = false
-				}
-				const within = getPrototypeOf(runInNewFrame)[symContext]
-				const newContext = new UserContext(propNames, initialDefaults, within)
-				runInNewFrame[symContext] = newContext
-				return
-			}
-			try {
-				const newFrame = runInNewFrame = Frame.New(within)
-				run()
-				if(factories) for(let idx = factories.length; idx--;) factories[idx]()
-				return runIn(newFrame, this, fn, args)
-			}
-			finally {
-				runInNewFrame = undefined
-			}
-		}
-		run[symFactory] = true
+		const newFrame = new Frame()
+		current && current.forEach((context, Context) => newFrame.set(Context, context))
+
+		const parentContext = newFrame.get(Context) || Context[symLoopGlobal]
+		const newContext = create.call(Context, init, parentContext)
+		newFrame.set(Context, newContext)
+
+		function run(fn) {return runIn(newFrame, undefined, fn, [])}
 		return fn ? run(fn) : run
 	}
 
-	const hasSwitching = UserContext.prototype.switching !== undefined
-	let previousContext = undefined
+	Context[symEnter] = lifeCycle.enter
 
-	for(const name of ownProperties) {
-		const defaultValue = UserContext[name]
-		if(isFn(defaultValue) {
-			if(hasSwitching)
-				UserContext[name] = function(...args) {
-					const currentContext = current[symContext]
-					if(currentContext !== previousContext) {
-						currentContext.switching(previousContext)
-						previousContext = currentContext
-					}
-					// unwind
-					return defaultValue.call(this, ...args)
-				}
-			propNames.push(name)
-			defineProperty(ContextFactory, name, {
-				configurable: false,
-				enumerable: true,
-				writable: false,
-				value: UserContext[name]
-			})
-		}
-		else {
-			if(name === 'name' || name === 'length' || name === 'prototype') continue
-			defaults[name] = defaultValue
-			propNames.push(name)
-			defineProperty(ContextFactory, name, {
-				configurable: false,
-				enumerable: true,
-				get() {return current[symContext][name]},
-				set(value) {return current[symContext][name] = value}
-			})
-		}
+	Context[symLoopGlobal] = create.call(Context, props)
+	lifeCycle.top && lifeCycle.top.call(this, Context[symLoopGlobal])
+	
+	for(const name of getOwnPropertyNames(props)) {
+		defineProperty(Context, name, {
+			configurable: false,
+			enumerable: true,
+			get() {
+				if(!current) return Context[symLoopGlobal][name]
+				const context = current.get(Context)
+				if(!context) return Context[symLoopGlobal][name]
+				return context[name]
+			},
+			set(v) {
+				if(!current) return Context[symLoopGlobal][name] = v
+				const context = current.get(Context)
+				if(!context) return Context[symLoopGlobal][name] = v
+				context[name] = v
+			}
+		})
 	}
 
-	freeze(ContextFactory)
+	freeze(Context)
 
-	previousContext = new UserContext(propNames, defaults, undefined)
-	current[symContext] = previousContext
-	if(hasSwitching) previousContext.switching(undefined)
-
-	return ContextFactory
+	return <any>Context
 }
 
+export const oFunction = global_.Function
 
 let nmId = 0
-export const oFunction = global_.Function
-function copyOwnProps(to, from) {
-	for(const property of getOwnPropertyNames(from)) {
-		if(property === 'name') continue
-		// @ts-ignore - we got the prop, so we'll get descriptor
-		defineProperty(to, property, getOwnPropertyDescriptor(from, property))
-	}
-	for(const property of getOwnPropertySymbols(from))
-		// @ts-ignore - we got the prop, so we'll get descriptor
-		defineProperty(to, property, getOwnPropertyDescriptor(from, property))
-}
-function disguise(original, mask) {
-	let {name, prototype} = original
-	const disguised = oFunction('mask', prototype
-		? `return function ${name}(...args) {return mask.call(this, args)}`
+function disguise(as, using) {	
+	let {name, prototype} = as	
+	if(name === '') name = `_${nmId++}_`
+	const disguised = oFunction('using', prototype
+		? `return function ${name}(...args) {return using.call(this, args)}`
 		:	`
-			const namer = {['${name}'](...args) {return mask.call(this, args)}}
+			const namer = {['${name}'](...args) {return using.call(this, args)}}
 			return namer['${name}']
 		`
-	)(mask)
-	//copyOwnProps(disguised, as)
-	// super remote edge case: if something sets new
-	// prop on disguised, it wont actually
-	// set prop on 'as'
-	setPrototypeOf(disguised, original)
-	disguised[symDisguised] = name ||`_${nmId++}_`
-	original[symDisguised] = disguised
+	)(using)
+	for(const property of getOwnPropertyNames(as)) {
+		if(property === 'name') continue
+		// @ts-ignore - we got the prop, so we'll get descriptor
+		defineProperty(disguised, property, getOwnPropertyDescriptor(as, property))
+	}
+	for(const property of getOwnPropertySymbols(as))
+		// @ts-ignore - we got the prop, so we'll get descriptor
+		defineProperty(disguised, property, getOwnPropertyDescriptor(as, property))
+	disguised[symDisguised] = name
 	return disguised
 }
 
-function deleteOwnRemoved(to, from) {
-	for(const property of getOwnPropertyNames(to))
-		if(getOwnPropertyDescriptor(from) === undefined) delete to[property]
-	for(const property of getOwnPropertySymbols(from))
-		if(getOwnPropertyDescriptor(from) === undefined) delete to[property]
-}
+const framedFns = new WeakMap()
+function frameFn(fn) {
+	if(fn[symDisguised]) return fn
+	let framed = framedFns.get(fn)
+	if(framed) return framed // technically should copy func.ownProps over again....
 
-function frameCallback(cb) {
-	const disguisedAs = cb[symDisguised]
-	if(disguisedAs) return disguisedAs[symDisguised] ? disguisedAs : cb
 	const within = current
-	return disguise(cb, function wrappedCb(args) {return runIn(within, this, cb, args)})
+	framed = disguise(fn, function(args) {return runIn(within, this, fn, args)})
+	fn[symDisguised] = framed[symDisguised]
+	framedFns.set(fn, framed)
+
+	return framed
 }
 
-function frameCallbackArgs(original) {
+function frameFnArgs(args) {
+	for(let i = 0, len = args.length, arg; arg = args[i], i < len; ++i)
+		if(isFn(arg)) args[i] = frameFn(arg)
+	return args
+}
+
+function makeFrameAware(original) {
 	if(original[symDisguised]) return original
 
 	const using = original.prototype
 		? function(args) {
-			for(let i = 0; i < args.length; ++i)
-				if(typeof args[i] === 'function') args[i] = frameCallback(args[i])
-			//return this instanceof original ? new original(...args) : original.call(this, ...args)
-			return original.call(this, ...args)
+			return (
+				this instanceof original ? new original : original
+			).call(this, ...frameFnArgs(args))
 		}
-		: function(args) {
-			for(let i = 0; i < args.length; ++i)
-				if(typeof args[i] === 'function') args[i] = frameCallback(args[i])
-			return original.call(this, ...args)
-		}
+		: function(args) {return original.call(this, ...frameFnArgs(args))}
 
 	return disguise(original, using)
 }
 
-function findProtoImpl(proto, prop) {
-	while(proto) {
-		if(proto.hasOwnProperty(prop)) return proto
-		proto = getPrototypeOf(proto)
-	}
+function findProtoImpl(proto, name) {
+	while(proto)
+		if(proto.hasOwnProperty(name)) return proto
+		else proto = getPrototypeOf(proto)
 	return undefined
 }
 
-function patchMethod(type, name, wrapper, isProto = false) {
+function patchMethod(type, name, patchMaker, isProto = false) {
 	const patchType = isProto ? findProtoImpl(type, name) : type
 	if(!patchType) return
 	const desc = getOwnPropertyDescriptor(patchType, name)
 	if(!desc || !isFn(desc.value) || desc.value[symDisguised]) return
-	desc.value = wrapper(desc.value)
+	desc.value = patchMaker(desc.value) // patchMaker patchMaker make me a patch
 	defineProperty(patchType, name, desc)
 }
 
-function patchResultOnEach(type, spec, shouldFrameCall, isProto) {
+function patchResultOnEach(type, spec, isFrameAware, isProto) {
 	for(const calledMethodName of getOwnPropertyNames(spec)) {
 		for(const resultMethodName of spec[calledMethodName]) {
-			const patchEach = function(original) {
-				return disguise(original, function eachPatch(args) {
-					if(shouldFrameCall)
-					// unwind
-						for(let i = 0; i < args.length; ++i)
-							if(isFn(args[i])) args[i] = frameCallback(args[i])
-
+			function makeResultFrameAware(original) {
+				return disguise(original, function frameEach(args) {
+					if(isFrameAware) args = frameFnArgs(args)							
 					const result = original.call(this, ...args)
 					if(!result) return result
-					patchMethod(result, resultMethodName, frameCallbackArgs)
+					patchMethod(result, resultMethodName, makeFrameAware)
 					return result
 				})
 			}
-			patchMethod(type, calledMethodName, patchEach, isProto)
+			patchMethod(type, calledMethodName, makeResultFrameAware, isProto)
 		}
 	}
 }
 
-function patchApply(type, spec, isProto = false) {
-	if(typeof spec === 'string') {
-		patchMethod(type, spec, frameCallbackArgs, isProto)
-	}
+function applySpec(type, spec, isProto = false) {
+	if(typeof spec === 'string') patchMethod(type, spec, makeFrameAware, isProto)
 	else {
 		let {rv, callrv} = spec
 		rv = callrv
@@ -419,9 +285,9 @@ function patch(using) {
 
 		const patch = using[path]
 		const {ctor, own, proto} = patch
-		if(parentType && ctor) patchMethod(parentType, typeName, frameCallbackArgs, false)
-		if(own) for(const spec of own) patchApply(type, spec)
-		if(proto) for(const spec of proto) patchApply(type.prototype, spec, true)
+		if(parentType && ctor) patchMethod(parentType, typeName, makeFrameAware, false)
+		if(own) for(const spec of own) applySpec(type, spec)
+		if(proto) for(const spec of proto) applySpec(type.prototype, spec, true)
 	}
 }
 
@@ -429,6 +295,7 @@ const patchTable = {
 	node: {
 		'6.0.0': {
 			'global': {own: ['setImmediate', 'setInterval', 'setTimeout']},
+			'global.Promise': {proto: ['catch', 'finally', 'then']},
 			'child_process': {
 				own: [{callrv: {exec: ['send'], execFile: ['send'], fork: ['send'], spawn: ['send']}}]
 			},
@@ -437,7 +304,7 @@ const patchTable = {
 			'dns': {
 				own: [
 					'lookup', 'lookupService', 'resolve', 'resolve4', 'resolve6', 'resolveAny', 'resolveCname',
-					'resolveMx', 'resolveNaptr', 'resolveNs', 'resolvePtr', 'resolveSoa', 'resolveSrv',
+					'resolveMx', 'resolveNaptr', 'resolveNs', 'resolvePtr', 'resolveSoa', 'resolveSrv', 
 					'resolveTxt', 'reverse'
 				]
 			},
@@ -460,22 +327,20 @@ const patchTable = {
 			'http.Server': {proto: ['close', 'setTimeout']},
 			'http.ServerResponse': {proto: ['end', 'setTimeout', 'write']},
 			'http.IncomingMessage': {proto: ['setTimeout']},
-
 			'http2': {own: ['connect', 'createServer', 'createSecureServer']},
 			'http2.Http2ServerRequest': {proto: ['setTimeout']},
 			'http2.Http2ServerResponse': {proto: ['end', 'setTimeout', 'write', 'createPushResponse']},
 			/*
 			these all end up calling EventEmitter.once, .on, etc. or process.nextTick()
 			so don't need to patch.. probably others that dont need it, but doesn't hurt
-			as wrapping only happens once. However, these classes are not directly accessible
-
+			as frame wrapping only happens once. However, these classes are not directly accessible
+		
 			Http2Session: {proto: ['close', 'ping', 'setTimeout']},
 			Http2Stream: {proto: ['close', 'setTimeout']},
 			ServerHttp2Stream: {proto: ['pushStream']},
 			Http2Server: {proto: ['close', 'setTimeout']},
 			Http2SecureServer: {proto: ['close', 'setTimeout']},
 			*/
-
 			'https': {own: ['get', 'request']},
 			'https.Server': {proto: ['close', 'setTimeout']},
 			'inspector.Session': {proto: ['post']},
@@ -539,7 +404,7 @@ const ST_BLOCK_COMMENT_ASTERISK = 9
 const ST_SIGNATURE = 10
 const ST_NAME = 11
 
-function wrapGeneratorFns(source:string) {
+function frameGeneratorFns(source:string) {
 	const len = source.length
 	let partStart = 0
 
@@ -572,7 +437,7 @@ function wrapGeneratorFns(source:string) {
 			default:
 				switch(codeState) {
 
-				case ST_CODE:
+				case ST_CODE: 
 					switch(ch) {
 
 					case CC_LCURLY: ++genFn.block; break
@@ -588,10 +453,10 @@ function wrapGeneratorFns(source:string) {
 						const isAnon = name.length === 0
 						const original = `${func}${sig}${body}`
 						const decl = isAnon ? `(${original})` : `(${name}['${eldc}']||(${name}['${eldc}']=${original}))`
-						const wrapped = `function ${sig}{const g=${decl}.call(this,...arguments);g['${eldc}']=${eldc};return g}`
+						const framed = `function ${sig}{const g=${decl}.call(this,...arguments);g['${eldc}']=${eldc};return g}`
 
 						genFn = genFnStack.pop()
-						genFn.parts.push(wrapped)
+						genFn.parts.push(framed)
 
 						break
 
@@ -603,7 +468,7 @@ function wrapGeneratorFns(source:string) {
 					case genFnCc:
 						if(genFnCcIdx === 0 && funcStart === -1) funcStart = pos
 
-						if(ch !== CC_ASTERISK) genFnCc = CC_GEN_FN[++genFnCcIdx]
+						if(ch !== CC_ASTERISK) genFnCc = CC_GEN_FN[++genFnCcIdx]						
 
 						else {
 							asyncCc = CC_ASYNC[asyncCcIdx = 0]
@@ -633,7 +498,7 @@ function wrapGeneratorFns(source:string) {
 						}
 						break
 					}
-
+	
 					break
 
 				case ST_SIGNATURE:
@@ -655,7 +520,7 @@ function wrapGeneratorFns(source:string) {
 					codeState = ST_SIGNATURE
 					break
 				}
-
+				
 				break
 			}
 
@@ -665,7 +530,7 @@ function wrapGeneratorFns(source:string) {
 			switch(ch) {
 			case CC_SLASH: state = ST_LINE_COMMENT; break
 			case CC_ASTERISK: state = ST_BLOCK_COMMENT; break
-			default: state = ST_REGEX; break
+			default: state = ST_REGEX;break
 			}
 
 			break
@@ -738,15 +603,22 @@ try {
 	const oFunction = global_.Function
 	global_.Function = function Function(...args) {
 		const source = args[args.length - 1]
-		if(source && source.indexOf('function*')) args[args.length - 1] = wrapGeneratorFns(source)
+		if(source && source.indexOf('function*')) args[args.length - 1] = frameGeneratorFns(source)
 		return oFunction.call(this, ...args)
 	}
-	copyOwnProps(global_.Function, oFunction)
+	for(const property of getOwnPropertyNames(oFunction))
+		if(property === 'name') continue
+		else
+			// @ts-ignore - we got the prop, so we'll get descriptor
+			defineProperty(global_.Function, property, getOwnPropertyDescriptor(oFunction, property))
+	for(const property of getOwnPropertySymbols(oFunction))
+		// @ts-ignore - we got the prop, so we'll get descriptor
+		defineProperty(global_.Function, property, getOwnPropertyDescriptor(oFunction, property))
 
 	const Module = require('module')
 	const oCompile = Module.prototype._compile
 	Module.prototype._compile = function(content, filename) {
-		content = content.indexOf('function*') === -1 ? content : wrapGeneratorFns(content)
+		content = content.indexOf('function*') === -1 ? content : frameGeneratorFns(content)
 		return oCompile.call(this, content, filename)
 	}
 
@@ -776,36 +648,10 @@ catch {}
 
 patch(patchTable.node['6.0.0'])
 
-function framePromiseCb(cb) {
-	if(cb) {
-		cb[symPromiseJob] = true
-		cb = frameCallback(cb)
-	}
-	return cb
-}
-
 const oThen = Promise.prototype.then
-patchMethod(Promise.prototype, 'then', original => {
-	return function(onfulfilled, onrejected) {
-		if(!this[symFrame]) this[symFrame] = current
-		return original.call(this, framePromiseCb(onfulfilled), framePromiseCb(onrejected))
-	}
-})
-
-const oCatch = Promise.prototype.catch
-Promise.prototype.catch = {
-	['catch'](onrejected) {return oCatch.call(this, framePromiseCb(onrejected))}
-}['catch']
-
-class UserlandPromise extends global_.Promise {
-	constructor(fn) {
-		super(fn)
-		this[symFrame] = current
-	}
+Promise.prototype.then = function then(...args) {
+	for(const arg of args)
+		// @ts-ignore if isFn true, arg not null|undefined
+		if(isFn(arg)) arg[symPromiseJob] = true
+	return oThen.call(this, ...args)
 }
-global_.Promise = UserlandPromise
-
-patchMethod(require('events'), 'init', original => function() {
-	this[symFrame] = current
-	return original.call(this)
-})

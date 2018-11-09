@@ -1,0 +1,78 @@
+* [_2_]
+* [_4_]
+* 0.ctxOne(...)
+*                          Queue BFR MT 0 to ctx 0
+* -> 0 into
+0 [timer]
+0                          Queue AFT MT 2 to ctx 0
+0 -> 0 outof
+* 1.ctxTwo(...)
+*                          Queue BFR MT 3 to ctx 1
+* -> 1 into
+1 2.ctxTwoOne(...)
+1                          Queue BFR MT 5 to ctx 2
+1 -> 2 into
+2 [timer]
+2                          Queue AFT MT 7 to ctx 2
+2 -> 1 outof
+1 [timer]
+1                          Queue AFT MT 8 to ctx 1
+1 -> 1 outof
+* [exit]
+*               aft ex
+*                            Run BFR MT 0 to ctx 0
+* -> 0 BFR
+0  >then
+0 [_17_]
+0 [_18_]
+0  <then
+0                            Run AFT MT 2 to ctx 1
+0 -> 1 AFT
+1                            Run BFR MT 3 to ctx 1
+1 -> 1 BFR
+1                            Run BFR MT 5 to ctx 2
+1 -> 2 BFR
+2  >then
+2 [_19_]
+2 [_20_]
+2  <then
+2                            Run AFT MT 7 to ctx 2
+2  >then
+2 [_21_]
+2 [_22_]
+2  <then
+2                            Run AFT MT 8 to ctx 0
+2 -> 0 AFT
+0 1.timer(...)
+0 -> 1 into
+1                          Queue AFT MT 10 to ctx 1
+1 -> 0 outof
+0 2._21_(...)
+0 -> 2 into
+2 -> 0 outof
+0                            Run AFT MT 10 to ctx 1
+0 -> 1 AFT
+1 Two should be 'Two'
+1 0.timer(...)
+1 -> 0 into
+0                          Queue AFT MT 13 to ctx 0
+0 -> 1 outof
+1 0._17_(...)
+1 -> 0 into
+0 -> 1 outof
+1                            Run AFT MT 13 to ctx 0
+1 -> 0 AFT
+0 One should be 'One'
+0 2.timer(...)
+0 -> 2 into
+2                          Queue AFT MT 16 to ctx 2
+2 -> 0 outof
+0 2._19_(...)
+0 -> 2 into
+2 -> 0 outof
+0                            Run AFT MT 16 to ctx 2
+0 -> 2 AFT
+2 TwoOne should be 'TwoOne'
+2 2.exit(...)
+2 -> 2 into
+PS C:\src\eldc>
