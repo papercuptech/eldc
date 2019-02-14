@@ -170,7 +170,6 @@ function runIn(within, this_, fn, args) {
 
 	const result = tryCall(fn, this_, args)
 
-
 	if(isFrameSwitch) {
 		//dbg(`switch backto ${from.id}`)
 		global_[eldc] = current = from
@@ -179,33 +178,6 @@ function runIn(within, this_, fn, args) {
 
 	if(tryEx) throw(tryEx)
 	return result;
-
-	//if(tryEx) {
-		//within.caught(tryEx)
-		/*
-		try {
-			within.caught()
-		}
-		const ex = tryEx
-		const checkedEx = tryCall(within.error, within, [ex, 'throw'])
-		if(checkedEx) throw checkedEx
-		if(ex) {
-			ex.checkedEx = tryEx
-			throw tryEx
-		}
-		*/
-	//}
-
-	/*
-	if(isThenable(result)) {
-		const catchPromise = new Promise((resolve, reject) => {
-
-		})
-		result.then(null, )
-		return catchPromise
-	}
-	return result
-	*/
 }
 
 const symAsyncIds = Symbol('eldc-async-ids')
@@ -278,7 +250,7 @@ function context(arg1) {
 		let fn = args[args.length - 1]
 		fn = fn && isFn(fn) && fn
 		let initial = args[0]
-		initial = initial && isObj(initial) && initial
+		initial = isObj(initial) ? initial : undefined
 
 		let factories:any[]|null = null
 
@@ -325,7 +297,6 @@ function context(arg1) {
 
 	const hasSwitching = UserContext.prototype.switching !== undefined
 	let previousContext:Context|undefined
-	let hasTop = true
 	for(const name of getOwnPropertyNames(properties)) {
 		if(hasUserContext && name === 'name' || name === 'length' || name === 'prototype') continue
 		if(name === 'Top' || name === 'Current') continue
@@ -1103,4 +1074,41 @@ class test {
 unhandled exceptions and errors
 
 
+const EventHandlerTrap = {
+	trap(method, this_, trapArgs) {
+
+	},
+	then(continuation, trapArgs) {
+
+	}
+}
+
+let runningTasks = 0
+
+const MacroTaskTrap = {
+	trap(method, this_, trapArgs) {
+		++runningTasks
+		++Traps.runningTasks
+		return method.call(this_, ...trapArgs)
+		return method(trapArgs)
+	},
+	then(continuation, trapArgs) {
+		return function() {
+			--runningTasks
+			--Traps.runningTasks
+			return continuation.call(this, ...arguments)
+		}
+	}
+}
+
+
+
+@trap({
+
+})
+
+
+export class Traps extends Context {
+	static 
+}
  */

@@ -203,6 +203,9 @@ catch {
 	'window.WebSocket.prototype'
 ]
 
+// have to patch for returnTraps first, so that method then passed
+// to trap of that method
+
 
 const ts = {
 	global: {
@@ -269,20 +272,64 @@ function intercept(path) {
 const current = {}
 const symTraps = ''
 
+import {fastCall} from ''
+
+const symContinuation = Symbol()
 
 const trapPassthruEx = {
-	trap(method, this_, trapArgs) {
-		return method.call(this_, ...trapArgs)
+	//trap(method, this_, trapArgs) {
+	trap3(method, methodThis, methodArgs, continuation, future) {
+		future(continuation)
+		// func alloc on every call
+		future(function() {return continuation.call(this, ...arguments)})
+
+		// one func alloc per unique continuation
+		// but be careful! this means function closure
+		// is over things from first time linked to continuation.
+		// if you really need cont state per each trap call, then 
+		// just alloc a function on each call like above and close-over
+		future(continuation[symContinuation] ||
+			(continuation[symContinuation] = function() {
+				return continuation.call(this, ...arguments)
+			})
+		)
+
+		return method.call(methodThis, ...methodArgs)
+
+		switch(fastCall) {
+			case fastCall.Spread: return method.call(methodThis, ...methodArgs)
+			case FastCall.Apply: return method.apply(methodThis, methodArgs)
+			case fastCall.Call:
+				const a = methodArgs
+				return method.call(methodThis, a[0], a[1], a[2], a[3], a[4])
+		}
+	}
+	trap2(method, methodArgs, continuation) {		
+		return method(methodArgs, (this_, args) => continuation(this_, args))
+	}
+	trap(method, trapArgs) {
+			//return method.call(this_, ...trapArgs)
+		return method(trapArgs)
 	},
 	then(continuation, trapArgs) {
 		//if(trapArgs) null
 		return function() {
-			return continuation.call(this, ...arguments)
+			return continuation(this, arguments)
+			//return continuation.call(this, ...arguments)
 		}
 	}
 }
 
-function trapMethod(address, instance, name) {
+function setTrap(instance, name, desc, trap) {
+	defineProperty(instance, name, {
+		configurable: true,
+		enumerable: desc.enumerable,
+		writable: desc.writable || desc.set !== undefined,
+		value: trap
+	})
+}
+
+function trapResult(resultTraps, instance, name) {
 	const desc = getOwnPropertyDescriptor(instance, name)
 	if(!desc || !desc.configurable) return false
 
@@ -290,33 +337,71 @@ function trapMethod(address, instance, name) {
 	if(!isFn(method)) return false
 	if(method[symDisguised]) return true
 
-	const {getCb, setCb, resultTraps} = trapDescriptorTable[address]
-
-	const trapped = disguise(method, function(this:any) {
-		const traps = current[symTraps]
-		const addressTrap = traps && traps[address]
-		const {trap, then} = addressTrap && addressTrap()
-		const continuation = getCb && frameContinuation(getCb(arguments))
-		continuation && setCb(arguments, then ? then(continuation, arguments) : continuation)
-		const result = trap ? trap(method, this, arguments) : method.call(this, ...arguments)
-
-		if(resultTraps) {
+	setTrap(instance, name, desc
+		,disguise(method, function(this:any) {
+			const result = method.call(this, ...arguments)
 			let idx = resultTraps.length
 			while(idx--) {
 				const [name, address, trapper] = resultTraps[idx]
 				trapper(address, result, name)
 			}
-		}
+			return result
+		})
+	)
 
-		return result
-	})
+	return true
+}
 
-	defineProperty(instance, name, {
-		configurable: true,
-		enumerable: desc.enumerable,
-		writable: desc.writable || desc.set !== undefined,
-		value: trapped
-	})
+function runIn(a,b,c,d, e?) {}
+const symTrapped = Symbol()
+
+
+let futureFrame
+let setFuture
+let trapArgs
+function frameFuture(continuation) {
+	const trapFrame = futureFrame
+	// func alloc, to close over trapFrame and continuation
+	// could use linklist on funcs? except woudl have to try/catch
+	// as runIn throws
+	setFuture(trapArgs, function() {return runIn(trapFrame, continuation, this, arguments)}, true)
+}
+function unframedFuture(continuation) {
+	setFuture(trapArgs, continuation)	
+}
+
+function trapMethod(address, instance, name) {
+	const desc = getOwnPropertyDescriptor(instance, name)
+	if(!desc || !desc.configurable) return false
+
+	const {getCb, setCb, resultTraps} = trapDescriptorTable[address]
+	resultTraps && trapResult(resultTraps, instance, name)
+
+	const method = instance[name]
+	if(!isFn(method)) return false
+	if(method[symTrapped]) return true
+	method[symTrapped] = true
+
+	setTrap(instance, name, desc
+		,disguise(method, function(this:any) {
+			const traps = current[symTraps]
+			const trap = traps && traps[address]
+			const trapFrame = futureFrame = trap && trap[symFrame]
+			setFuture = setCb
+			trapArgs = arguments
+			const continuation = getCb && frameContinuation(getCb(arguments))
+			continuation && setCb(continuation)
+			const result = trap
+				? (trapFrame
+					// array alloc - alloc/free faster than setting 0 - 4 on static array?
+					// we are always setting 0 - 4, so then is [a,b] faster than ar[0] = a; ar[1] = b
+					? runIn(trapFrame, trap, undefined, [method, this, arguments, continuation, frameFuture], true)
+					: trap(method, this, arguments, continuation, unframedFuture)
+				)
+				: method.call(this, ...arguments)
+			return result
+		})
+	)
 
 	return true
 }
