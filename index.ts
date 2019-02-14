@@ -50,7 +50,7 @@ function isObj(thing) {return thing !== null && typeof thing === 'object'}
 const symId = Symbol('eldc-id')
 
 const symDisguised = Symbol('eldc-disguised')
-const symPromiseJob = Symbol('eldc-promise-job')
+const symIsResolver = Symbol('eldc-promise-job')
 const symContextSymbol = Symbol('eldc-context-symbol')
 const symFactory = Symbol('eldc-initialize')
 const symFrame = Symbol('eldc-frame')
@@ -100,37 +100,37 @@ export function cur(c?) {
 }
 
 
-const queuePromiseJob = Promise.prototype.then.bind(Promise.resolve())
+const queuePromiseMicroTask = Promise.prototype.then.bind(Promise.resolve())
 
 interface Switcher {
 	():void
 	to:Frame
 	next?:Switcher
-	isFromPromiseJob:boolean
+	isForResolver:boolean
 }
 let freeSwitchers:Switcher|undefined = undefined
-function getSwitcher(to, isFromPromiseJob = false) {
+function getSwitcher(to, isForResolver = false) {
 	let switcher:Switcher
 	if(freeSwitchers) {
 		switcher = freeSwitchers
 		freeSwitchers = freeSwitchers.next
 	}
-	else switcher = <Switcher>function switcher() {
-		const switcher_ = <Switcher>switcher
-		const {to, isFromPromiseJob} = switcher_
+	else switcher = <Switcher>function newSwitcher() {
+		const switcher = <Switcher>newSwitcher
+		const {to, isForResolver} = switcher
 		if(current !== to) global_[eldc] = current = to
-		if(isFromPromiseJob) {
-			switcher_.isFromPromiseJob = false
-			queuePromiseJob(switcher_)
+		if(isForResolver) {
+			switcher.isForResolver = false
+			queuePromiseMicroTask(switcher)
 		}
 		else {
-			switcher_.to = loopGlobal
-			switcher_.next = freeSwitchers
-			if(freeSwitchers) freeSwitchers.next = switcher_
+			switcher.to = loopGlobal
+			switcher.next = freeSwitchers
+			freeSwitchers = switcher
 		}
 	}
 	switcher.to = to
-	switcher.isFromPromiseJob = isFromPromiseJob
+	switcher.isForResolver = isForResolver
 	return switcher
 }
 
@@ -158,18 +158,23 @@ function tryCall(fn, this_, args) {
 
 function runIn(within, this_, fn, args) {
 	const isFrameSwitch = current !== within
-	const isPromiseJob = fn[symPromiseJob] === true
+	const isResolver = fn[symIsResolver] === true
 	const from = current
-	if(isFrameSwitch || isPromiseJob) {
-		queuePromiseJob(getSwitcher(within, isPromiseJob))
-		dbg(`switch into ${within.id}`)
+	if(isFrameSwitch || isResolver) {
+		// TODO: probably only need this for native Promise hosts
+		queuePromiseMicroTask(getSwitcher(within, isResolver))
+
+		//dbg(`switch into ${within.id}`)
 		global_[eldc] = current = within
 	}
+
 	const result = tryCall(fn, this_, args)
+
+
 	if(isFrameSwitch) {
-		dbg(`switch backto ${from.id}`)
+		//dbg(`switch backto ${from.id}`)
 		global_[eldc] = current = from
-		queuePromiseJob(getSwitcher(from))
+		queuePromiseMicroTask(getSwitcher(from))
 	}
 
 	if(tryEx) throw(tryEx)
@@ -206,6 +211,16 @@ function runIn(within, this_, fn, args) {
 const symAsyncIds = Symbol('eldc-async-ids')
 let runInNewFrame:Frame|undefined = undefined
 
+function toContinue(continuation, broker:(this_, args) => any) {
+	continuation
+}
+
+interface IContext {
+	planCallback?:(continuation, planner) => void
+	planResolver?:(continuation, planner) => void
+	planHandler?:(continuation, planner) => void
+}
+
 class Context {
 	id!:number
 	constructor(properties, initial, symContext) {
@@ -219,13 +234,12 @@ class Context {
 		}
 	}
 
-	error(err, source) {return err}
-	catch(exception, source) {
-		//
+	planCallback(continuation, through) {
+		if(through === 'fs.readAsync')
+		toContinue(continuation, (this_, args) => continuation.call(this_, ...args))
 	}
 
 	switching(from) {}
-	get isRunning() {return this[symAsyncIds] > 0}
 
 	static get Current() {return null as any as Context}
 }
@@ -373,39 +387,43 @@ function context(arg1) {
 
 
 let nmId = 0
-export const oFunction = global_.Function
 function disguise(original, mask) {
 	defineProperty(mask, 'name', {configurable: true, value: original.name})
 	defineProperty(mask, 'length', {configurable: true, value: original.length})
 	setPrototypeOf(mask, original)
-	mask[symDisguised] = original.name ||`_${nmId++}_`
 	original[symDisguised] = mask
+	mask[symDisguised] = original.name ||`_${nmId++}_`
 	return mask
 }
 
-let freeRunIns
-function frameCallback(cb) {
+
+
+function frameContinuation(cb) {
 	const disguisedAs = cb[symDisguised]
 	if(disguisedAs) return disguisedAs[symDisguised] ? disguisedAs : cb
 	const within = current
 	return disguise(cb, function(){return runIn(within, this, cb, arguments)})
 }
 
-function frameCallbackArgs(original) {
+
+
+
+
+function frameContinuationArgs(original) {
 	if(original[symDisguised]) return original
 
 	return disguise(original, function(a,b,c,d,e) {
 		const len = arguments.length
 		if(len === 0) return original.call(this)
-		if(typeof a === 'function') a = frameCallback(a)
+		if(typeof a === 'function') a = frameContinuation(a)
 		if(len === 1) return original.call(this,a)
-		if(typeof b === 'function') b = frameCallback(b)
+		if(typeof b === 'function') b = frameContinuation(b)
 		if(len === 2) return original.call(this,a,b)
-		if(typeof c === 'function') c = frameCallback(c)
+		if(typeof c === 'function') c = frameContinuation(c)
 		if(len === 3) return original.call(this,a,b,c)
-		if(typeof d === 'function') d = frameCallback(d)
+		if(typeof d === 'function') d = frameContinuation(d)
 		if(len === 4) return original.call(this,a,b,c,d)
-		if(typeof e === 'function') e = frameCallback(e)
+		if(typeof e === 'function') e = frameContinuation(e)
 		if(len === 5) return original.call(this,a,b,c,d,e)
 
 		const args = arguments
@@ -413,7 +431,7 @@ function frameCallbackArgs(original) {
 		let idx = len
 		while(idx-- > 5) {
 			const arg = args[idx]
-			if(typeof arg === 'function') args[idx] = frameCallback(arg)
+			if(typeof arg === 'function') args[idx] = frameContinuation(arg)
 		}
 		original.call(this, ...args)
 	})
@@ -426,6 +444,55 @@ function findProtoImpl(proto, prop) {
 	}
 	return undefined
 }
+
+/*
+patch address
+
+continuationTypes
+Callback // a callback that will only be called once - at tick of event loop
+Resolver // a callback that will only be called once - at end of event loop from Promise then, catch, finally
+Handler //  a callback that may be called 0 or more times - only once per tick loop
+
+Task is what runs in a context
+
+
+
+boundaryAddress = trapDescriptor
+'global.Promise'
+'global.Promise.then'
+'global.setImmediate' = {callback: {required: true}} // second arg is always cb fn()
+'import.fs.access' = {callback: -1} // -1 means is 0 from end of args, -2 is -1 from eoa
+'import.events.addListener' = {handler: 1}
+'import.child_process.ChildProcess.send' = {callback: true}
+'import.child_process.exec' = {callback: {rv: 'import.child_process.ChildProcess'}}
+
+context({}, {
+	'global.Promise'(trapArgs, continuation) {
+
+		// setup stuff based on trapArgs, or just by address name
+
+		++Context.callbacksRunning
+
+		// then augment continuation
+
+		onContinue(continuation, (this_, continueArgs) => continuation.call(this_, ...continueArgs))
+
+		// or
+		onContinue(continuation, (this_, continueArgs) => {
+			try {
+				return continuation.call(this_, ...continueArgs))
+			}
+			finally{--Context.callbacksRunning}
+		}
+
+	}
+})
+trap[address] = 'global.Promise'
+trap[
+
+
+
+ */
 
 function patchMethod(type, name, wrapper, isProto = false) {
 	const patchType = isProto ? findProtoImpl(type, name) : type
@@ -444,7 +511,7 @@ function patchResultOnEach(type, spec, shouldFrameCall, isProto) {
 					if(shouldFrameCall)
 						for(let i = 0; i < args.length; ++i) {
 							const arg = args[i]
-							if(typeof arg === 'function') args[i] = frameCallback(arg)
+							if(typeof arg === 'function') args[i] = frameContinuation(arg)
 						}
 					const len = args.length
 					let result
@@ -456,7 +523,7 @@ function patchResultOnEach(type, spec, shouldFrameCall, isProto) {
 					else if(len === 5) result = original.call(this,args[0],args[1],args[2],args[3],args[4])
 					else result = original.call(this, ...args)
 
-					if(result) patchMethod(result, resultMethodName, frameCallbackArgs)
+					if(result) patchMethod(result, resultMethodName, frameContinuationArgs)
 					return result
 				})
 			}
@@ -467,7 +534,7 @@ function patchResultOnEach(type, spec, shouldFrameCall, isProto) {
 
 function patchApply(type, spec, isProto = false) {
 	if(typeof spec === 'string') {
-		patchMethod(type, spec, frameCallbackArgs, isProto)
+		patchMethod(type, spec, frameContinuationArgs, isProto)
 	}
 	else {
 		let {rv, callrv} = spec
@@ -503,7 +570,7 @@ function patch(using) {
 
 		const patch = using[path]
 		const {ctor, own, proto} = patch
-		if(parentType && ctor) patchMethod(parentType, typeName, frameCallbackArgs, false)
+		if(parentType && ctor) patchMethod(parentType, typeName, frameContinuationArgs, false)
 		if(own) for(const spec of own) patchApply(type, spec)
 		if(proto) for(const spec of proto) patchApply(type.prototype, spec, true)
 	}
@@ -528,6 +595,7 @@ const patchTable = {
 			'events': {
 				proto: ['addListener', 'removeListener', 'off', 'on', 'once', 'prependListener', 'prependOnceListener']
 			},
+
 			'fs': {
 				own: [
 					'access', 'appendFile', 'chmod', 'chown', 'close', 'copyFile', 'exists', 'fchmod',
@@ -800,6 +868,8 @@ function wrapGeneratorFns(source:string) {
 	return genFn.parts.join('')
 }
 
+export const oFunction = global_.Function
+
 try {
 	const GeneratorFunctionPrototype = getPrototypeOf(Function('return function*(){}')())
 	const GeneratorObjectPrototype = GeneratorFunctionPrototype.constructor.prototype.prototype
@@ -819,10 +889,10 @@ try {
 		value: function() {return runIn(this[eldc], this, oAsyncNext, arguments)}
 	})
 
-	const oFunction = global_.Function
+	// TODO: what about eval?
 	global_.Function = function Function(...args) {
 		const source = args[args.length - 1]
-		if(source && source.indexOf('function*')) args[args.length - 1] = wrapGeneratorFns(source)
+		if(source && source.indexOf('function*') !== -1) args[args.length - 1] = wrapGeneratorFns(source)
 		return oFunction.call(this, ...args)
 	}
 	setPrototypeOf(oFunction, global_.Function)
@@ -860,38 +930,55 @@ catch {}
 
 patch(patchTable.node['6.0.0'])
 
-function framePromiseCb(cb) {
-	if(cb) {
-		cb[symPromiseJob] = true
-		cb = frameCallback(cb)
+function frameResolver(resolver) {
+	if(resolver) {
+		resolver[symIsResolver] = true
+		resolver = frameContinuation(resolver)
 	}
-	return cb
+	return resolver
 }
 
 const oThen = Promise.prototype.then
+
+// for node
 patchMethod(Promise.prototype, 'then', original => {
 	return function(onfulfilled, onrejected) {
 		if(!this[symFrame]) {
+			// only true when node host is calling 'then()' from microtask
+			// implementing PromiseResolveThenableJob which calls performPromiseThen
 			this[symFrame] = current
-			current[symAsyncIds]++
 		}
-		return original.call(this, framePromiseCb(onfulfilled), framePromiseCb(onrejected))
+
+		// by this point, the promise object is coupled to the frame it
+		// was created in, stored in this[symFrame]
+		// further, the promise callbacks run in context in which 'then()' called :)
+		// and many thens can run in their own separate contexts
+		return original.call(this, frameResolver(onfulfilled), frameResolver(onrejected))
 	}
 })
 
 const oCatch = Promise.prototype.catch
 Promise.prototype.catch = {
-	['catch'](onrejected) {return oCatch.call(this, framePromiseCb(onrejected))}
+	['catch'](onrejected) {return oCatch.call(this, frameResolver(onrejected))}
 }['catch']
 
 class UserlandPromise extends global_.Promise {
 	[symFrame]: any
 
+	// node host never calls this.. if host does then wont matter
 	constructor(fn) {
 		super(fn)
 		this[symFrame] = current
 	}
 }
+
+/*
+if(oThen) UserlandPromise.prototype.then = oThen
+if(oCatch) UserlandPromise.prototype.catch = {
+	['catch'](onrejected) {return oCatch.call(this, framePromiseCb(onrejected))}
+}['catch']
+*/
+
 global_.Promise = UserlandPromise
 
 /*
