@@ -77,6 +77,9 @@ C_.prop = 'Zero'
 const C = context(C_)
 */
 
+
+
+
 function assert(strCodeCheck, Context) {
 	if(!Function('C', `return ${strCodeCheck}`)(Context))
 		log('ASSERT FAILED: ' + strCodeCheck)
