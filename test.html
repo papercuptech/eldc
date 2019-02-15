@@ -1,26 +1,12 @@
 <!DOCTYPE html>
 <html>
 <script>
-	desc = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'onclick')
-	const oGet = desc.get
-	desc.get = function() {
-		const v = oGet.call(this)
-		console.log('get ', v)
-		return v
-	}
-	Object.defineProperty(HTMLElement.prototype, 'onclick', desc)
-
-	console.log(desc)
-
-	window.onclick = function() {
-		console.log('win onclick')
-	}
+	console.log(HTMLFrameSetElement.prototype)
+	console.log(Object.getOwnPropertyNames(HTMLFrameSetElement.prototype))
 </script>
 <body >
 <div id='d' onclick='console.log("div onclick")'>test</div>
 <script>
-	const d = document.getElementById('d')
-	//console.log(d.onclick)
 </script>
 </body>
 </html>

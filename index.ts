@@ -22,7 +22,7 @@ export function log(...args) {
 	_plog.push(util.format(pad(4,`${cur()}`) + ': ',...args))
 }
 
-let dbgLog = false
+let dbgLog = true
 function dbg(...args) {
 	if(!dbgLog) return
 	log(...args)
@@ -32,7 +32,7 @@ function dbg(...args) {
 
 const {
 	assign,
-	create: objCreate,
+	create: create,
 	defineProperty,
 	freeze,
 	getOwnPropertyDescriptor,
@@ -47,13 +47,26 @@ const {
 function isFn(thing) {return typeof thing === 'function'}
 function isObj(thing) {return thing !== null && typeof thing === 'object'}
 
+let nmId = 0
+function disguise(original, mask) {
+	defineProperty(mask, 'name', {configurable: true, value: original.name})
+	defineProperty(mask, 'length', {configurable: true, value: original.length})
+	setPrototypeOf(mask, original)
+	original[symDisguised] = mask
+	mask[symDisguised] = original.name ||`_${nmId++}_`
+	return mask
+}
+
+
 const symId = Symbol('eldc-id')
 
 const symDisguised = Symbol('eldc-disguised')
-const symIsResolver = Symbol('eldc-promise-job')
+const symIsAwaitChain = Symbol('eldc-promise-job')
 const symContextSymbol = Symbol('eldc-context-symbol')
 const symFactory = Symbol('eldc-initialize')
 const symFrame = Symbol('eldc-frame')
+const symTraps = Symbol('eldc-traps')
+
 
 export const SymCurrent = Symbol('eldc-current-context')
 
@@ -64,30 +77,15 @@ catch {
 	catch {}
 }
 
-let eldcLocked = false
-let eldc = ''
-export function setEldcName(name) {
-	if(eldcLocked) return
-	if(eldc !== '') delete global_[eldc]
-	eldc = name
-	global_[eldc] = undefined
-}
-setEldcName('_$eldc$_')
-
-
-
 
 let nextId = 0
 class Frame {
 	id!:number
 
-	catch(exception, source) {
-		//for each context, call its catch
-	}
-
 	static New(within?:Frame) {
-		const new_ = objCreate(within || null)
+		const new_ = create(within || null)
 		new_.id = nextId++
+		//new_[symTraps] = objCreate(within && within[symTraps] || null)
 		return new_ as Frame
 	}
 }
@@ -105,11 +103,11 @@ const queuePromiseMicroTask = Promise.prototype.then.bind(Promise.resolve())
 interface Switcher {
 	():void
 	to:Frame
+	isForAwaitChain:boolean
 	next?:Switcher
-	isForResolver:boolean
 }
 let freeSwitchers:Switcher|undefined = undefined
-function getSwitcher(to, isForResolver = false) {
+function getSwitcher(to, isForAwaitChain = false) {
 	let switcher:Switcher
 	if(freeSwitchers) {
 		switcher = freeSwitchers
@@ -117,10 +115,10 @@ function getSwitcher(to, isForResolver = false) {
 	}
 	else switcher = <Switcher>function newSwitcher() {
 		const switcher = <Switcher>newSwitcher
-		const {to, isForResolver} = switcher
-		if(current !== to) global_[eldc] = current = to
-		if(isForResolver) {
-			switcher.isForResolver = false
+		const {to, isForAwaitChain} = switcher
+		current = to
+		if(isForAwaitChain) {
+			switcher.isForAwaitChain = false
 			queuePromiseMicroTask(switcher)
 		}
 		else {
@@ -130,74 +128,62 @@ function getSwitcher(to, isForResolver = false) {
 		}
 	}
 	switcher.to = to
-	switcher.isForResolver = isForResolver
-	return switcher
+	switcher.isForAwaitChain = isForAwaitChain
+	return switcher as Switcher
 }
 
-// Highlander!! "There can be only one"
-let tryEx = undefined
-function tryCall(fn, this_, args) {
-	tryEx = undefined
-	try {
-		// maybe for older/other vm's that cant optimize SEH
-		// move unwind into sep func. will be question of
-		// multi func call perf vs SEH un-optimization perf
-		const len = args && args.length || 0
-		if(len === 0) return fn.call(this_)
-		if(len === 1) return fn.call(this_,args[0])
-		if(len === 2) return fn.call(this_,args[0],args[1])
-		if(len === 3) return fn.call(this_,args[0],args[1],args[2])
-		if(len === 4) return fn.call(this_,args[0],args[1],args[2],args[3])
-		if(len === 5) return fn.call(this_,args[0],args[1],args[2],args[3],args[4])
-		return fn.call(this_, ...args)
-	}
-	catch(ex) {tryEx = ex}
-}
+const EMPTY_ARRAY = []
 
-
-
-function runIn(within, this_, fn, args, ) {
-	const isFrameSwitch = current !== within
-	const isResolver = fn[symIsResolver] === true
+function runSync(within, fn, this_, args) {
+	if(current === within) return fn.call(this, ...(args || EMPTY_ARRAY))
 	const from = current
-	if(isFrameSwitch || isResolver) {
-		// TODO: probably only need this for native Promise hosts
-		queuePromiseMicroTask(getSwitcher(within, isResolver))
-
-		//dbg(`switch into ${within.id}`)
-		global_[eldc] = current = within
-	}
-
-	const result = tryCall(fn, this_, args)
-
-	if(isFrameSwitch) {
-		//dbg(`switch backto ${from.id}`)
-		global_[eldc] = current = from
-		queuePromiseMicroTask(getSwitcher(from))
-	}
-
-	if(tryEx) throw(tryEx)
-	return result;
+	current = within
+	try {return fn.call(this, ...(args || EMPTY_ARRAY))}
+	finally {current = from}
 }
 
-const symAsyncIds = Symbol('eldc-async-ids')
+function runAsync(within, fn, this_, args) {
+	const isFrameSwitch = current !== within
+	const isAwaitChain = fn[symIsAwaitChain] === true
+	const from = current
+
+	if(isFrameSwitch || isAwaitChain) {
+		queuePromiseMicroTask(getSwitcher(within, isAwaitChain))
+		current = within
+	}
+	try {return fn.call(this_, ...(args || EMPTY_ARRAY))}
+	finally {
+		if(isFrameSwitch) {
+			current = from
+			queuePromiseMicroTask(getSwitcher(from))
+		}
+	}
+}
+
+function frameContinuation(cb, run = runSync) {
+	const disguised = cb[symDisguised]
+	if(disguised) return disguised[symDisguised] ? disguised : cb
+	const within = current
+	return disguise(cb, function() {return run(within, cb, this, arguments)})
+}
+
+function frameAwaitChain(resolver) {
+	if(resolver) {
+		resolver[symIsAwaitChain] = true
+		resolver = frameContinuation(resolver, runAsync)
+	}
+	return resolver
+}
+
+
+
+
 let runInNewFrame:Frame|undefined = undefined
-
-function toContinue(continuation, broker:(this_, args) => any) {
-	continuation
-}
-
-interface IContext {
-	planCallback?:(continuation, planner) => void
-	planResolver?:(continuation, planner) => void
-	planHandler?:(continuation, planner) => void
-}
 
 class Context {
 	id!:number
 	constructor(properties, initial, symContext) {
-		// @ts-ignore runInNewFrame is never undef at this point
-		this.id = runInNewFrame.id
+		this.id = runInNewFrame!.id
 		if(!initial) return
 		let propIdx = properties.length
 		while(propIdx--) {
@@ -206,14 +192,18 @@ class Context {
 		}
 	}
 
-	planCallback(continuation, through) {
-		if(through === 'fs.readAsync')
-		toContinue(continuation, (this_, args) => continuation.call(this_, ...args))
-	}
-
 	switching(from) {}
 
+	static get Frame() {return current}
 	static get Current() {return null as any as Context}
+	static Trap(address, trap) {
+		let traps = current[symTraps]
+		if(!traps) {
+			const parentFrame = getPrototypeOf(current)
+			traps = create(parentFrame && parentFrame[symTraps] || null)
+		}
+		traps[address] = trap
+	}
 }
 // was declared primarily for typescript (vs defining interface and all that)
 // but context builder looks for presence of 'switching' to activate it
@@ -243,7 +233,7 @@ function context(arg1) {
 
 	const symContext = Symbol(`eldc-ctx-${UserContext.name}`)
 
-	const defaults = objCreate(null)
+	const defaults = create(null)
 	const propNames:string[] = []
 
 	function Factory(...args) {
@@ -262,7 +252,7 @@ function context(arg1) {
 			factories.push(factory)
 		}
 
-		const initialDefaults = assign(objCreate(null), defaults)
+		const initialDefaults = assign(create(null), defaults)
 		let hadInitial = false
 		const within = current
 		function run(fn?, args?) {
@@ -288,7 +278,7 @@ function context(arg1) {
 				if(factories) for(let idx = factories.length; idx--;) factories[idx]()
 			}
 			finally {runInNewFrame = undefined}
-			return runIn(newFrame, this, fn, args)
+			return runAsync(newFrame, fn, this, args)
 		}
 		run[symFactory] = run
 		return fn ? run(fn) : run
@@ -357,26 +347,6 @@ function context(arg1) {
 
 
 
-let nmId = 0
-function disguise(original, mask) {
-	defineProperty(mask, 'name', {configurable: true, value: original.name})
-	defineProperty(mask, 'length', {configurable: true, value: original.length})
-	setPrototypeOf(mask, original)
-	original[symDisguised] = mask
-	mask[symDisguised] = original.name ||`_${nmId++}_`
-	return mask
-}
-
-
-
-function frameContinuation(cb) {
-	const disguisedAs = cb[symDisguised]
-	if(disguisedAs) return disguisedAs[symDisguised] ? disguisedAs : cb
-	const within = current
-	return disguise(cb, function(){return runIn(within, this, cb, arguments)})
-}
-
-
 
 
 
@@ -408,6 +378,10 @@ function frameContinuationArgs(original) {
 	})
 }
 
+
+
+
+
 function findProtoImpl(proto, prop) {
 	while(proto) {
 		if(proto.hasOwnProperty(prop)) return proto
@@ -416,54 +390,6 @@ function findProtoImpl(proto, prop) {
 	return undefined
 }
 
-/*
-patch address
-
-continuationTypes
-Callback // a callback that will only be called once - at tick of event loop
-Resolver // a callback that will only be called once - at end of event loop from Promise then, catch, finally
-Handler //  a callback that may be called 0 or more times - only once per tick loop
-
-Task is what runs in a context
-
-
-
-boundaryAddress = trapDescriptor
-'global.Promise'
-'global.Promise.then'
-'global.setImmediate' = {callback: {required: true}} // second arg is always cb fn()
-'import.fs.access' = {callback: -1} // -1 means is 0 from end of args, -2 is -1 from eoa
-'import.events.addListener' = {handler: 1}
-'import.child_process.ChildProcess.send' = {callback: true}
-'import.child_process.exec' = {callback: {rv: 'import.child_process.ChildProcess'}}
-
-context({}, {
-	'global.Promise'(trapArgs, continuation) {
-
-		// setup stuff based on trapArgs, or just by address name
-
-		++Context.callbacksRunning
-
-		// then augment continuation
-
-		onContinue(continuation, (this_, continueArgs) => continuation.call(this_, ...continueArgs))
-
-		// or
-		onContinue(continuation, (this_, continueArgs) => {
-			try {
-				return continuation.call(this_, ...continueArgs))
-			}
-			finally{--Context.callbacksRunning}
-		}
-
-	}
-})
-trap[address] = 'global.Promise'
-trap[
-
-
-
- */
 
 function patchMethod(type, name, wrapper, isProto = false) {
 	const patchType = isProto ? findProtoImpl(type, name) : type
@@ -631,6 +557,7 @@ const patchTable = {
 	}
 }
 
+const eldc = '_$^[@{#(*<!%&-eldc-&%!>*)#}@]^$_'
 
 function cc(char) {return char.charCodeAt(0)}
 
@@ -661,6 +588,7 @@ const ST_BLOCK_COMMENT = 8
 const ST_BLOCK_COMMENT_ASTERISK = 9
 const ST_SIGNATURE = 10
 const ST_NAME = 11
+
 
 function wrapGeneratorFns(source:string) {
 	const len = source.length
@@ -711,7 +639,7 @@ function wrapGeneratorFns(source:string) {
 						const isAnon = name.length === 0
 						const original = `${func}${sig}${body}`
 						const decl = isAnon ? `(${original})` : `(${name}['${eldc}']||(${name}['${eldc}']=${original}))`
-						const wrapped = `function ${sig}{const g=${decl}.call(this,...arguments);g['${eldc}']=${eldc};return g}`
+						const wrapped = `function ${sig}{const g=${decl}.call(this,...arguments);g['${eldc}']=Context.Frame;return g}`
 
 						genFn = genFnStack.pop()
 						genFn.parts.push(wrapped)
@@ -848,7 +776,7 @@ try {
 	defineProperty(GeneratorObjectPrototype, 'next', {
 		configurable: true,
 		enumerable: true,
-		value: function() {return runIn(this[eldc], this, oNext, arguments)}
+		value: function() {return runAsync(this[eldc], oNext, this, arguments)}
 	})
 
 	const AsyncGeneratorFunctionPrototype = getPrototypeOf(Function('return async function*(){}')())
@@ -857,7 +785,7 @@ try {
 	defineProperty(AsyncGeneratorObjectPrototype, 'next', {
 		configurable: true,
 		enumerable: true,
-		value: function() {return runIn(this[eldc], this, oAsyncNext, arguments)}
+		value: function() {return runAsync(this[eldc], oAsyncNext, this, arguments)}
 	})
 
 	// TODO: what about eval?
@@ -901,14 +829,6 @@ catch {}
 
 patch(patchTable.node['6.0.0'])
 
-function frameResolver(resolver) {
-	if(resolver) {
-		resolver[symIsResolver] = true
-		resolver = frameContinuation(resolver)
-	}
-	return resolver
-}
-
 const oThen = Promise.prototype.then
 
 // for node
@@ -924,13 +844,13 @@ patchMethod(Promise.prototype, 'then', original => {
 		// was created in, stored in this[symFrame]
 		// further, the promise callbacks run in context in which 'then()' called :)
 		// and many thens can run in their own separate contexts
-		return original.call(this, frameResolver(onfulfilled), frameResolver(onrejected))
+		return original.call(this, frameAwaitChain(onfulfilled), frameAwaitChain(onrejected))
 	}
 })
 
 const oCatch = Promise.prototype.catch
 Promise.prototype.catch = {
-	['catch'](onrejected) {return oCatch.call(this, frameResolver(onrejected))}
+	['catch'](onrejected) {return oCatch.call(this, frameAwaitChain(onrejected))}
 }['catch']
 
 class UserlandPromise extends global_.Promise {
@@ -958,157 +878,4 @@ const oQueueDestroyAsyncId = async_wrap.queueDestroyAsyncId
 async_wrap.queueDestroyAsyncId = function queueDestroyAsyncId(asyncId) {
 	return oQueueDestroyAsyncId.call(this, asyncId)
 }
-
-const EventEmitter = require('events')
-patchMethod(EventEmitter, 'init', original => function() {
-	this[symFrame] = current
-	return original.call(this)
-})
-
-patchMethod(EventEmitter.prototype, 'emit', original => function(...args) {
-
-})
-
-process.on('unhandledRejection', (reaason, p) => {
-	if(!p[symFrame]) return false
-
-	//for
-})
-
-process.on('rejectionHandled', (reason, p) => {
-
-})
 */
-
-// how to 'integrate' cb(err, data) error
-// handling with context
-/*
-setTimeout((err, data) => {
-	if(err) {
-		throw err
-	}
-})
-*/
-/*
-frame state
-	running
-	waiting
-		// can we track what we're waiting on?
-		// is this tracking cheap, or only for 'diag'??
-		// event listeners not the same thing
-		// can have timeout for rejected promises being handled
-		// before entering 'faulted' state
-		//   entering 'faulted' notifies parent??
-	completed
-		// no more pending i/o's - i.e. calls into api??
-		//
-	faulted
-		// could still be waiting on things
-		// issue is how other 'resources' that have i/o pending get
-		// released, such that eventually no more cb's on q by v8
-		// to call back at some point... everything is gc'able
-
-		// we can at least track api cb's that havent come back yet?
-		// we can track other promises still not resolved?
-
- */
-class test {
-
-
-
-	// synchronous try/catch
-	catch(exception) {
-		// this.state = faulted
-		throw exception
-	}
-
-	// event emitter
-	//error(ee:EventEmitter) {
-		// do we throw?
-		// do we reject our promise?
-		// this.state = faulted
-	//}
-
-	// propagating errors
-
-	// errors thrown in api calls that take (err, data) cb
-	err(err) {
-		// this.state = faulted
-
-	}
-
-	// if what was ran in us returned a promise that was rejected
-	// but this is no different than 'await runIn(...)'
-	rejected() {
-		// this.state = faulted
-	}
-
-	resolved() {
-		// by then cb?
-	}
-
-	// if we became 'free-running', and then this all happened
-	// these would probably interplay with timeout of promises
-	// that have rejected, but not 'handled' yet
-	unhandledRejection() {}
-	rejectionHandled() {}
-
-	multipleResolves() {}
-
-	// if original/first call returned a thenable(), then
-	// we attach a catch handler, and we then create and return our own promise.
-	// that promise can reject/resolve from the original returned doing so
-	// or from the other handlers effectively call reject/resolve
-	//   i.e. the 'caught' handler would throw, and core giggle would
-	///  merely then call context.reject(), or would it?
-	//
-
-	// if original/first call did not return a thenable(), then
-	// context is 'free running', and will only 'release' (get gc'd)
-	// when all i/o callbacks are ultimately 'let go of' by runtime
-	// in theory
-
-}
-
-/*
-unhandled exceptions and errors
-
-
-const EventHandlerTrap = {
-	trap(method, this_, trapArgs) {
-
-	},
-	then(continuation, trapArgs) {
-
-	}
-}
-
-let runningTasks = 0
-
-const MacroTaskTrap = {
-	trap(method, this_, trapArgs) {
-		++runningTasks
-		++Traps.runningTasks
-		return method.call(this_, ...trapArgs)
-		return method(trapArgs)
-	},
-	then(continuation, trapArgs) {
-		return function() {
-			--runningTasks
-			--Traps.runningTasks
-			return continuation.call(this, ...arguments)
-		}
-	}
-}
-
-
-
-@trap({
-
-})
-
-
-export class Traps extends Context {
-	static 
-}
- */
