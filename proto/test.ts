@@ -1,2 +1,2 @@
-import './index'
+import '.'
 import './test2.2.2'

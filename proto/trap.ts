@@ -2,10 +2,14 @@
 
 const {
 	assign,
-	create: objCreate,
+	create,
+	defineProperties,
 	defineProperty,
+	entries,
 	freeze,
+	//fromEntries,
 	getOwnPropertyDescriptor,
+	getOwnPropertyDescriptors,
 	getOwnPropertyNames,
 	getOwnPropertySymbols,
 	getPrototypeOf,
@@ -17,13 +21,13 @@ const {
 function isFn(thing) {return typeof thing === 'function'}
 function isObj(thing) {return thing !== null && typeof thing === 'object'}
 
-let nmId = 0
+let disguiseId = 0
 function disguise(original, mask) {
 	defineProperty(mask, 'name', {configurable: true, value: original.name})
 	defineProperty(mask, 'length', {configurable: true, value: original.length})
 	setPrototypeOf(mask, original)
 	original[symDisguised] = mask
-	mask[symDisguised] = original.name ||`_${nmId++}_`
+	mask[symDisguised] = original.name ||`_${disguiseId++}_`
 	return mask
 }
 
@@ -31,12 +35,11 @@ function disguise(original, mask) {
 const symId = Symbol('eldc-id')
 
 const symDisguised = Symbol('eldc-disguised')
-const symIsAwaitChain = Symbol('eldc-promise-job')
+const symIsAwaitChain = Symbol('eldc-is-await-chain')
 const symContextSymbol = Symbol('eldc-context-symbol')
-const symFactory = Symbol('eldc-initialize')
+const symFactory = Symbol('eldc-factorty')
 const symFrame = Symbol('eldc-frame')
-
-export const SymCurrent = Symbol('eldc-current-context')
+const symTraps = Symbol('elds-traps')
 
 let global_:any = {}
 try {global_ = global}
@@ -51,14 +54,14 @@ class Frame {
 	id!:number
 
 	static New(within?:Frame) {
-		const new_ = objCreate(within || null)
+		const new_ = create(within || null)
 		new_.id = nextId++
 		return new_ as Frame
 	}
 }
 
-const loopGlobal = Frame.New()
-let current = loopGlobal
+const host = Frame.New()
+let current = host
 export function cur(c?) {
 	const frame = arguments.length === 1 ? c : current
 	return frame.id
@@ -89,7 +92,7 @@ function getSwitcher(to, isForAwaitChain = false) {
 			queuePromiseMicroTask(switcher)
 		}
 		else {
-			switcher.to = loopGlobal
+			switcher.to = host
 			switcher.next = freeSwitchers
 			freeSwitchers = switcher
 		}
@@ -127,17 +130,17 @@ function runAsync(within, fn, this_, args) {
 	}
 }
 
-function frameContinuation(cb, run = runSync) {
-	const disguised = cb[symDisguised]
-	if(disguised) return disguised[symDisguised] ? disguised : cb
+function frame(fn, run = runSync) {
+	const disguised = fn[symDisguised]
+	if(disguised) return disguised[symDisguised] ? disguised : fn
 	const within = current
-	return disguise(cb, function() {return run(within, cb, this, arguments)})
+	return disguise(fn, function() {return run(within, fn, this, arguments)})
 }
 
 function frameAwaitChain(resolver) {
 	if(resolver) {
 		resolver[symIsAwaitChain] = true
-		resolver = frameContinuation(resolver, runAsync)
+		resolver = frame(resolver, runAsync)
 	}
 	return resolver
 }
@@ -182,7 +185,7 @@ const LAST = function(desc) {desc.get = getLast; desc.set = setLast}
 const PROP = function(desc) {
 	desc.get = get0
 	desc.set = set0
-	desc.trap = property
+	desc.make = property
 }
 
 
@@ -192,46 +195,48 @@ function setInterceptor(desc) {return desc.intercept = trapInterceptor}
 function INTERCEPT(interceptor) {trapInterceptor = interceptor; return setInterceptor}
 
 
-interface TrapDescriptor {
+interface InterceptDescriptor {
 	run:any
-	trap:any
-	resultTraps:string[]
+	make:any
+	resultIntercepts:string[]
 }
 
 const defaultDesc = {
 	run: sync,
-	trap: method,
+	make: method,
 }
 
-function ensureDesc(address, path):TrapDescriptor {
-	return trapDescriptorTable[address] ||
-		(trapDescriptorTable[address] = assign({path}, defaultDesc))
+function ensureDesc(address, path):InterceptDescriptor {
+	return interceptDescriptorTable[address] ||
+		(interceptDescriptorTable[address] = assign({path}, defaultDesc))
 }
 
-function generateTrapDescriptor(generator, address, path:string[] = []) {
+function generateInterceptDescriptor(generator, address, path:string[] = []) {
 	for(let [node, ...commands] of generator) {
 		address = address && (address + '.' + node) || node
 		if(node === '()') {
-			const resultTraps = ensureDesc(address, path).resultTraps = [] as string[]
+			const resultIntercepts = ensureDesc(address, path).resultIntercepts = [] as string[]
 			for(let resultGenerator of commands) {
-				const [resultTrapNode] = resultGenerator
-				const resultTrapAddress = address + '.().' + resultTrapNode
-				resultTraps.push(resultTrapAddress)
-				generateTrapDescriptor(resultGenerator, resultTrapAddress, [resultTrapNode])
+				const [resultInterceptNode] = resultGenerator
+				const resultInterceptAddress = address + '.().' + resultInterceptNode
+				resultIntercepts.push(resultInterceptAddress)
+				generateInterceptDescriptor(resultGenerator, resultInterceptAddress, [resultInterceptNode])
 			}
 		}
 		else {
 			path.push(node)
 			for(let cmdOrChild of commands) {
 				if(isFn(cmdOrChild)) cmdOrChild(ensureDesc(address, path), address)
-				else generateTrapDescriptor(cmdOrChild, address, path)
+				else generateInterceptDescriptor(cmdOrChild, address, path)
 			}
 		}
 	}
 }
 
-function trap(address, instance?) {
-	const {path, trap} = trapDescriptorTable[address]
+function intercept(address, instance?) {
+	const {path, make} = interceptDescriptorTable[address]
+	if(!path || !make) return false
+
 	instance = instance || (instance = path[0] === 'global' ? global_ : require(path[0]))
 	let idx = 1
 	let end = path.length - 1
@@ -241,7 +246,7 @@ function trap(address, instance?) {
 		name = path[++idx]
 	}
 	if(!instance) return false
-	return trap(address, instance, name)
+	return make(address, instance, name)
 }
 
 
@@ -254,16 +259,7 @@ the js eventloop is fantastic at doing two things:
 */
 
 
-
-
-
-
-
-const symTraps = ''
-
-
-
-function setMethodTrap(instance, name, desc, trap) {
+function setMethodInterceptor(instance, name, desc, trap) {
 	defineProperty(instance, name, {
 		configurable: true,
 		enumerable: desc.enumerable,
@@ -272,32 +268,29 @@ function setMethodTrap(instance, name, desc, trap) {
 	})
 }
 
-function trapResult(address, resultTraps, instance, name, method) {
-	const desc = getOwnPropertyDescriptor(instance, name)
-
-	const trap = disguise(method, function(this:any) {
+function makeResultInterceptor(address, resultTraps, instance, name, method) {
+	return disguise(method, function(this:any) {
 		const result = method.call(this, ...arguments)
 		let idx = resultTraps.length
+		address += '.().'
 		while(idx--) {
-			const resultAddress = address + '.().' + resultTraps[idx]
-			const {trap} = trapDescriptorTable[resultAddress]
-			trap(resultAddress, result, name)
+			const resultAddress = address + resultTraps[idx]
+			const {type: maker} = interceptDescriptorTable[resultAddress]
+			maker(resultAddress, result, name)
 		}
 		return result
 	})
-
-	setMethodTrap(instance, name, desc, trap)
-
-	return true
 }
 
-const symTrapped = Symbol()
+const symIntercepted = Symbol('eldc-intercepted')
+const symIntercept = Symbol('eldc-intercept')
+const symResultIntercept = Symbol('eldc-result-intercept')
 
 let futureFrame
 let futureRun
 let setFuture
 let trapArgs
-function frameFuture(continuation) {
+function framedFuture(continuation) {
 	const trapFrame = futureFrame
 	const run = futureRun
 	setFuture(trapArgs, function() {return run(trapFrame, continuation, this, arguments, false)})
@@ -306,14 +299,17 @@ function unframedFuture(continuation) {
 	setFuture(trapArgs, continuation)	
 }
 
-function makeTrap(address, instance, name, method) {
-	if(method[symTrapped]) return method
 
-	const {get, set, run, intercept, resultTraps} = trapDescriptorTable[address]
-	method = intercept && intercept(method) || method
-	resultTraps && trapResult(address, resultTraps, instance, name, method)
 
-	const trapped = disguise(method, function(this:any) {
+function makeInterceptor(address, instance, name, method) {
+	if(method[symIntercepted]) return method
+
+	const {get, set, run, intercept, resultTraps} = interceptDescriptorTable[address]
+	if(intercept) method = method[symIntercept] || (method[symIntercept] = intercept(method))
+	if(resultTraps) method = method[symResultIntercept] ||
+		(method[symResultIntercept] = makeResultInterceptor(address, resultTraps, instance, name, method))
+
+	const interceptor = disguise(method, function(this:any) {
 		const traps = current[symTraps]
 		const trap = traps && traps[address]
 		const trapFrame = futureFrame = trap && trap[symFrame]
@@ -322,60 +318,61 @@ function makeTrap(address, instance, name, method) {
 			setFuture = set
 			trapArgs = arguments
 		}
-		const continuation = get && frameContinuation(get(arguments))
+		const continuation = get && frame(get(arguments))
 		continuation && set(continuation)
 		const result = trap
 			? (trapFrame
-					? run(trapFrame, trap, undefined, [method, this, arguments, continuation, frameFuture])
+					? run(trapFrame, trap, undefined, [method, this, arguments, continuation, framedFuture])
 					: trap(method, this, arguments, continuation, unframedFuture)
 			)
 			: method.call(this, ...arguments)
 		return result
 	})
 
-	trapped[symTrapped] = true
+	interceptor[symIntercepted] = true
+
+	return interceptor
 }
 
 
-function trapMethod(address, instance, name) {
+function interceptMethod(address, instance, name) {
 	const desc = getOwnPropertyDescriptor(instance, name)
 	if(!desc || !desc.configurable) return false
 
 	const method = instance[name]
 	if(!isFn(method)) return false
 
-	setMethodTrap(instance, name, desc, makeTrap(address, instance, name, method))
+	const interceptor = makeInterceptor(address, instance, name, method)
+	setMethodInterceptor(instance, name, desc, interceptor)
 
 	return true
 }
 
 const symCbProps = Symbol()
 
-function trapProperty(address, instance, name) {
+function interceptProperty(address, instance, name) {
 	const desc = getOwnPropertyDescriptor(instance, name)
 	if(!desc || !desc.configurable) return false
 
 	const {get, set, value} = desc
 	const method = set || function(value) {this[name] = value}
-
-	const trap = makeTrap(address, instance, name, method)
+	const interceptor = makeInterceptor(address, instance, name, method)
 
 	defineProperty(instance, name, {
 		configurable: true,
 		enumerable: desc.enumerable,
 		get() {
 			const value = get ? get.call(this) : this[name]
+			if(current === host) return value
 			return value && value[symDisguised] || value
 		},
-		set(value) {
-
-			this[symCbProps][name] = true
-
-			return trap.call(this, value)
-		}
+		set(value) {return interceptor.call(this, value)}
 	})
 
-	value && (instance[name] = get ? get.call(instance) : value)
+	const cbProps = instance[symCbProps] || (instance[symCbProps] = create(null))
+	cbProps[name] = true
+
+	instance[name] = get ? get.call(instance) : value
 
 	return true
 }
@@ -387,6 +384,55 @@ defineProperty(Object, 'defineProperty', {
 	value: function(target, name, desc) {
 		const cbProps = target[symCbProps]
 		if(!cbProps || !cbProps[name]) return defineProperty(target, name, desc)
+
+		//if(desc.get || desc.set)
+
+		target[name] = desc.value
+	}
+})
+
+defineProperty(Object, 'defineProperties', {
+	configurable: true,
+	enumerable: true,
+	writable: true,
+	value: function(target, descs) {
+		getOwnPropertyNames(descs).forEach(prop => Object.defineProperty(target, prop, descs[prop]))
+		getOwnPropertySymbols(descs).forEach(prop => Object.defineProperty(target, prop, descs[prop]))
+	}
+})
+
+defineProperty(Object, 'getOwnPropertyDescriptor', {
+	configurable: true,
+	enumerable: true,
+	writable: true,
+	value: function(target, name) {
+		const cbProps = target[symCbProps]
+		if(!cbProps || !cbProps[name]) return getOwnPropertyDescriptor(target, name)
+		const value = target[name]
+		return {
+			configurable: true,
+			enumerable: true,
+			writable: true,
+			value: current === host ? value : (value && value[symDisguised] || value)
+		}
+	}
+})
+
+defineProperty(Object, 'getOwnPropertyDescriptors', {
+	configurable: true,
+	enumerable: true,
+	writable: true,
+	value: function(target) {
+
+	}
+})
+
+defineProperty(Object, 'entries', {
+	configurable: true,
+	enumerable: true,
+	writable: true,
+	value: function(target) {
+
 	}
 })
 
@@ -407,15 +453,11 @@ defineProperty(Object, 'defineProperty', {
 
 
 
-
-
-function getRegisterElement(a) {}
-
 function REGISTER_ELEMENT(...generators) {
 	return function(desc, address) {
 		address += '.$'
 		const propAddresses = generators.map(generator => {
-			generateTrapDescriptor(generator, address)
+			generateInterceptDescriptor(generator, address)
 			return address + '.' + generator[0]
 		})
 		desc.get = function(a) {
@@ -423,7 +465,7 @@ function REGISTER_ELEMENT(...generators) {
 			if(!prototype) return undefined
 
 			for(let propAddr of propAddresses)
-				trap(propAddr, prototype)
+				intercept(propAddr, prototype)
 
 			return undefined
 		}
@@ -455,7 +497,7 @@ function REGISTER_ELEMENT(...generators) {
 
 const CHILD_PROCESS_RESULT = ['().send', LAST]
 
-const trapDescriptorGenerators = [
+const interceptDescriptorGenerators = [
 	['global',
 		['FileReader', ['()',
 			['onabort', PROP],
@@ -469,8 +511,32 @@ const trapDescriptorGenerators = [
 				['attachedCallback', PROP],
 				['detachedCallback', PROP],
 				['attributeChangedCallback', PROP],
-			)]
-		]]
+			)],
+		]],
+
+		['Object',
+			['defineProperty',
+				INTERCEPT(method =>
+					function(target, name, desc) {
+						const cbProps = target[symCbProps]
+						if(!cbProps || !cbProps[name]) return method(target, name, desc)
+
+						//if(desc.get || desc.set) ;
+
+						target[name] = desc.value
+					}
+				),
+			],
+			['definedProperties',
+				INTERCEPT(method =>
+					function(target, descs) {
+						if(current === host) return defineProperties(target, descs)
+						getOwnPropertyNames(descs).forEach(prop => Object.defineProperty(target, prop, descs[prop]))
+						getOwnPropertySymbols(descs).forEach(prop => Object.defineProperty(target, prop, descs[prop]))
+					}
+				),
+			],
+		],
 	],
 
 
@@ -483,53 +549,66 @@ const trapDescriptorGenerators = [
 
 	['events', ['prototype',
 		['removeListener', ZERO],
-		['rawListeners',
+		['listeners',
 			INTERCEPT(method =>
-				function() {
-					const listeners = method.call(this)
-					return listeners && listeners.map(listener => listener[symTrapped])
+				function(eventName) {
+					const listeners = method.call(this, eventName)
+					if(current === host) return listeners
+					return listeners && listeners.map(listener => listener[symDisguised] || listener)
 				}
 			),
 		],
+		['rawListeners',
+			INTERCEPT(method =>
+				function(eventName) {
+					const listeners = method.call(this, eventName)
+					if(current === host) return listeners
+					return listeners && listeners.map(listener => listener[symDisguised])
+				}
+			),
+		],
+		['once'],
+		['on']
 	]],
 ]
 
 
 
+function getRegisterElement(a) {}
 
-const trapDescriptorTable = {
+const interceptDescriptorTable = {
 	'global.Document.prototype.registerElement': {
 		path: ['global', 'Document', 'prototype', 'registerElement'],
 		get: getRegisterElement,
-		trap: method,
+		make: method,
 		run: sync
 	},
 	'global.Document.prototype.registerElement.$.createdCallback': {
 		path: ['createdCallback'],
 		get: get0,
 		set: set0,
-		trap: property,
+		make: property,
 		run: sync
 	},
 	'global.Document.prototype.registerElement.$.attachedCallback': {
 		path: ['attachedCallback'],
 		get: get0,
 		set: set0,
-		trap: property,
+		make: property,
 		run: sync
 	},
 	'global.Document.prototype.registerElement.$.detachedCallback': {
 		path: ['detachedCallback'],
 		get: get0,
 		set: set0,
-		trap: property,
+		make: property,
 		run: sync
 	},
 	'global.Document.prototype.registerElement.$.attributeChangedCallback': {
 		path: ['attributeChangedCallback'],
 		get: get0,
 		set: set0,
-		trap: property,
+		make: property,
 		run: sync
 	},
 	'child_process.exec': {
@@ -537,7 +616,7 @@ const trapDescriptorTable = {
 		get: getLast,
 		set: setLast,
 		run: sync,
-		trap: method,
+		make: method,
 		intercept: method => function() {return method.call(this, ...arguments)},
 		resultTraps: [
 			'child_process.exec.().send'
@@ -548,7 +627,7 @@ const trapDescriptorTable = {
 		get() {},
 		set() {},
 		run: sync,
-		trap: method
+		make: method
 	},
 	'events.prototype.addListener': {
 
@@ -558,17 +637,17 @@ const trapDescriptorTable = {
 
 	},
 	'events.prototype.listeners': {
-		trap: method,
+		type: method,
 		intercept: method => function() {
 			const listeners = method.call(this)
-			return listeners && listeners.map(listener => listener[symTrapped])
+			return listeners && listeners.map(listener => listener[symIntercepted])
 		}
 	},
 
 	// we can wrap rl again, or assign to
 	'events.prototype.on': {
 		path: ['events', 'prototype', 'on'],
-		trapper: (address, instance) => instance.on = instance.removeListener
+		//trapper: (address, instance) => instance.on = instance.removeListener
 	},
 
 
@@ -585,9 +664,9 @@ const trapDescriptorTable = {
 	},
 
 	'global.FileReader.().onabort': {
-		parth: ['onabort'],
+		path: ['onabort'],
 		run: sync,
-		trap: property
+		make: property
 	},
 }
 
@@ -620,7 +699,7 @@ function trapPassthruEx(method, methodThis, methodArgs, continuation, future) {
 
 
 
-trap('address', (method, methodThis) => {
+intercept('address', (method, methodThis) => {
 
 })
 
@@ -766,23 +845,6 @@ function trapFutureProp() {
 	*/
 }
 
-
-
-
-
-
-
-function dreg(name) {
-	return {
-		get(a) {
-			const {prototype} = a[1]
-			if(!prototype) return undefined
-			return prototype[name]
-		},
-		set(a, c) {a[1].prototype[name] = c}
-	}
-}
-
 /*
 EventTarget
 	XMLHttpRequestEventTarget
@@ -812,3 +874,70 @@ EventTarget
 
 
 
+
+
+
+/*
+
+# Copyright 2017 The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+from .extended_attribute import ExtendedAttributeList
+from .utilities import assert_no_extra_args
+
+Arguments
+	kwargs KeyWordArgs
+
+	_identifier kwargs.pop 'identifier'
+	_type kwargs.pop 'type'
+
+
+	identifier if setTo then _identifier.= setTo else _identifier
+		setTo
+
+	function impl
+		arg1
+		arg2
+
+		impl arg1 + arg2
+
+
+
+
+class Argument(object):
+
+    def __init__(self, **kwargs):
+        self._identifier = kwargs.pop('identifier')
+        self._type = kwargs.pop('type')
+        self._is_optional = kwargs.pop('is_optional', False)
+        self._is_variadic = kwargs.pop('is_variadic', False)
+        self._default_value = kwargs.pop('default_value', None)
+        self._extended_attribute_list = kwargs.pop('extended_attribute_list', ExtendedAttributeList())
+        assert_no_extra_args(kwargs)
+
+    @property
+    def identifier(self):
+        return self._identifier
+
+    @property
+    def type(self):
+        return self._type
+
+    @property
+    def is_optional(self):
+        return self._is_optional
+
+    @property
+    def is_variadic(self):
+        return self._is_variadic
+
+    @property
+    def default_value(self):
+        return self._default_value
+
+    @property
+    def extended_attribute_list(self):
+        return self._extended_attribute_list
+
+ */
