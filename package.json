@@ -2,8 +2,8 @@
   "name": "eldc",
   "version": "1.0.0-a.0",
   "description": "event loop durable context for javascript",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "proto/index.js",
+  "types": "proto/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -22,5 +22,8 @@
     "es6-shim": "^0.35.4",
     "source-map-support": "^0.5.9",
     "typescript": "^3.1.6"
+  },
+  "dependencies": {
+    "tsconfig-paths": "^3.8.0"
   }
 }

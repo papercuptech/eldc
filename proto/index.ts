@@ -32,7 +32,7 @@ function dbg(...args) {
 
 const {
 	assign,
-	create: create,
+	create,
 	defineProperty,
 	freeze,
 	getOwnPropertyDescriptor,
@@ -56,14 +56,14 @@ function disguise(original, mask) {
 	mask[symDisguised] = original.name ||`_${nmId++}_`
 	return mask
 }
-
+function $(fn) {return fn && fn.call.bind(fn)}
 
 const symId = Symbol('eldc-id')
 
 const symDisguised = Symbol('eldc-disguised')
-const symIsAwaitChain = Symbol('eldc-promise-job')
+const symIsResolver = Symbol('eldc-promise-job')
 const symContextSymbol = Symbol('eldc-context-symbol')
-const symFactory = Symbol('eldc-initialize')
+const symAssemble = Symbol('eldc-initialize')
 const symFrame = Symbol('eldc-frame')
 const symTraps = Symbol('eldc-traps')
 
@@ -73,7 +73,7 @@ export const SymCurrent = Symbol('eldc-current-context')
 let global_:any = {}
 try {global_ = global}
 catch {
-	try {global_ = window}
+	try {global_ = self}
 	catch {}
 }
 
@@ -81,264 +81,379 @@ catch {
 let nextId = 0
 class Frame {
 	id!:number
+	madePromise!:boolean
 
-	static New(within?:Frame) {
+	constructor(within?:Frame) {
 		const new_ = create(within || null)
 		new_.id = nextId++
-		//new_[symTraps] = objCreate(within && within[symTraps] || null)
+		new_.madePromise = false
 		return new_ as Frame
 	}
 }
 
-const loopGlobal = Frame.New()
-let current = loopGlobal
+const top = new Frame()
+let current = top
 export function cur(c?) {
 	const frame = arguments.length === 1 ? c : current
 	return frame.id
 }
 
 
-const queuePromiseMicroTask = Promise.prototype.then.bind(Promise.resolve())
 
+
+const queuePromiseMicroTask:(switcher:Switcher) => void
+	= Promise.prototype.then.bind(Promise.resolve()) as any
+
+let nextSwId = 0
 interface Switcher {
 	():void
+	id:number
 	to:Frame
-	isForAwaitChain:boolean
+	isForResolver:boolean
 	next?:Switcher
+	isDouble:boolean
+	isSwitch:boolean
+	side:string
 }
 let freeSwitchers:Switcher|undefined = undefined
-function getSwitcher(to, isForAwaitChain = false) {
+function getSwitcher(to, isForResolver, isSwitch, side) {
 	let switcher:Switcher
 	if(freeSwitchers) {
 		switcher = freeSwitchers
 		freeSwitchers = freeSwitchers.next
 	}
-	else switcher = <Switcher>function newSwitcher() {
+	else (switcher = <Switcher>function newSwitcher() {
 		const switcher = <Switcher>newSwitcher
-		const {to, isForAwaitChain} = switcher
+		const {to, isForResolver, isSwitch, side} = switcher
+		if(switcher.isDouble)
+			dbg(switcher.id, 'reslv swt ', to.id, 'switched ', side, current !== to, isSwitch)
+		else
+			dbg(switcher.id, 'async swt ', to.id, 'switched ', side, current !== to, isSwitch)
 		current = to
-		if(isForAwaitChain) {
-			switcher.isForAwaitChain = false
+		if(isForResolver) {
+			dbg(switcher.id, 'q rslvr', to.id, false, isSwitch, 'in')
+			switcher.isForResolver = false
+			switcher.isDouble = true
 			queuePromiseMicroTask(switcher)
 		}
 		else {
-			switcher.to = loopGlobal
+			switcher.to = top
 			switcher.next = freeSwitchers
 			freeSwitchers = switcher
 		}
-	}
+	}).id = nextSwId++
 	switcher.to = to
-	switcher.isForAwaitChain = isForAwaitChain
+	switcher.isForResolver = isForResolver
+	switcher.isDouble = false
+	switcher.isSwitch = isSwitch
+	switcher.side = side
+	dbg(switcher.id, 'q ', to.id, isForResolver ? 'rslvr' : '', isSwitch ? 'isSwitch' : '', side)
 	return switcher as Switcher
 }
 
 const EMPTY_ARRAY = []
+let asyncStack:any = {}
 
-function runSync(within, fn, this_, args) {
-	if(current === within) return fn.call(this, ...(args || EMPTY_ARRAY))
+const runSync = runAsync
+function runAsync(within, fn, this_, args, isResolver = false) {
+	//isResolver && queuePromiseMicroTask(getSwitcher(within, isResolver, current !== within, 'in'))
+	queuePromiseMicroTask(getSwitcher(within, isResolver, current !== within, 'in'))
+
+	//asyncStack = {isResolver, isSwitch: current !== within, isAsync: false, asyncStack}
+
+	if(current === within) {return fn.apply(this_, (args || EMPTY_ARRAY))}
+	else {
+		const from = current
+		current = within
+		try {return fn.apply(this_, (args || EMPTY_ARRAY))}
+		finally {
+			//dbg('madePromise ', current.madePromise, ' isResolver ', isResolver)
+			current = from
+			queuePromiseMicroTask(getSwitcher(from, false, true, 'out'))
+			//if(asyncStack.isAsync) queuePromiseMicroTask(getSwitcher(from, false, true, 'out'))
+			//asyncStack = asyncStack.asyncStack
+			//if(current.madePromise) queuePromiseMicroTask(getSwitcher(from, false, true, 'out'))
+			//current.madePromise = false
+		}
+	}
+}
+
+
+class UserlandPromise extends global_.Promise {
+	[symFrame]: any
+
+	// node host never calls this.. if host does then wont matter
+	constructor(fn) {
+		//if(!asyncStack.isAsync) {
+			//asyncStack.isAsync = true
+			//queuePromiseMicroTask(getSwitcher(current, asyncStack.isResolver, false, 'in'))
+			//queuePromiseMicroTask(getSwitcher(current, false, false, 'in-p'))
+		//}
+		//if(!current.madePromise) queuePromiseMicroTask(getSwitcher(current, false, false, 'prm'))
+		//if(!current.madePromise) queuePromiseMicroTask(getSwitcher(current, false, true, 'in-p'))
+		//current.madePromise = true
+
+		super(...arguments)
+		this[symFrame] = current
+		/*
+		super(get)
+		this[symFrame] = current
+		const resolve = gotResolve
+		const reject = gotReject
+		fn.call(global_, resolve, reject)
+		*/
+	}
+}
+
+
+
+
+
+function runSyncx(within, fn, this_, args, ignore) {
+	if(current === within) return fn.apply(this_, (args || EMPTY_ARRAY))
 	const from = current
 	current = within
-	try {return fn.call(this, ...(args || EMPTY_ARRAY))}
+	try {return fn.apply(this_, (args || EMPTY_ARRAY))}
 	finally {current = from}
 }
 
-function runAsync(within, fn, this_, args) {
-	const isFrameSwitch = current !== within
-	const isAwaitChain = fn[symIsAwaitChain] === true
-	const from = current
-
-	if(isFrameSwitch || isAwaitChain) {
-		queuePromiseMicroTask(getSwitcher(within, isAwaitChain))
-		current = within
+/*
+function runAsyncx(within, fn, this_, args, isResolver = false) {
+	if(current === within) {
+		if(isResolver) queuePromiseMicroTask(getSwitcher(within, isResolver))
+		return fn.apply(this_, (args || EMPTY_ARRAY))
 	}
-	try {return fn.call(this_, ...(args || EMPTY_ARRAY))}
-	finally {
-		if(isFrameSwitch) {
+	else {
+		queuePromiseMicroTask(getSwitcher(within, isResolver))
+		const from = current
+		current = within
+		try {return fn.apply(this_, (args || EMPTY_ARRAY))}
+		finally {
 			current = from
-			queuePromiseMicroTask(getSwitcher(from))
+			queuePromiseMicroTask(getSwitcher(from, false))
 		}
 	}
 }
+*/
 
-function frameContinuation(cb, run = runSync) {
+
+
+
+
+function frameContinuation(cb, run = runSync, isResolver = false) {
 	const disguised = cb[symDisguised]
 	if(disguised) return disguised[symDisguised] ? disguised : cb
 	const within = current
-	return disguise(cb, function() {return run(within, cb, this, arguments)})
+	return disguise(cb, function() {return run(within, cb, this, arguments, isResolver)})
 }
 
-function frameAwaitChain(resolver) {
-	if(resolver) {
-		resolver[symIsAwaitChain] = true
-		resolver = frameContinuation(resolver, runAsync)
-	}
-	return resolver
+function frameResolver(resolver) {
+	return resolver && frameContinuation(resolver, runAsync, true)
 }
 
 
+/*
+Donald Rumsfiled comment's on JS
+
+"Known Knowns"        obj.prop === 'okay'
+"Known Unknowns"      obj.prop === null
+"Unknown Unknowns"    Object.getOwnPropertyDescriptor(obj, 'prop') === undefined
+
+"Gov Corruption"      Object.getOwnPropertyDescriptor(obj, 'prop').value === undefined
+
+ */
 
 
-let runInNewFrame:Frame|undefined = undefined
 
-class Context {
-	id!:number
-	constructor(properties, initial, symContext) {
-		this.id = runInNewFrame!.id
-		if(!initial) return
-		let propIdx = properties.length
-		while(propIdx--) {
-			const prop = properties[propIdx]
-			this[prop] = initial[prop]
-		}
-	}
+//let runInNewFrame:Frame|undefined = undefined
 
-	switching(from) {}
 
-	static get Frame() {return current}
-	static get Current() {return null as any as Context}
-	static Trap(address, trap) {
-		let traps = current[symTraps]
-		if(!traps) {
-			const parentFrame = getPrototypeOf(current)
-			traps = create(parentFrame && parentFrame[symTraps] || null)
-		}
-		traps[address] = trap
+interface IContext {
+	<T>(objectOrClass:T):typeof objectOrClass
+	Current:any
+	Frame:any
+	Trap:any
+	Release:any
+}
+class ContextError extends Error {
+	constructor(from, message) {
+		super(message)
+		if(Error.captureStackTrace) Error.captureStackTrace(this, from)
 	}
 }
-// was declared primarily for typescript (vs defining interface and all that)
-// but context builder looks for presence of 'switching' to activate it
-// for particular Context... Sooo... delete it here, once, before prototype
-// ever "used"
-delete Context.prototype.switching
 
-global_.Context = Context
-export {Context}
+export default Context as IContext
 
-interface ContextClass {
-	new (properties, initial, symContext): Context
-	Top?:Context
-	Current?:Context
-}
+function Context<T>(objectOrClass:T):typeof objectOrClass {
+	const isClass = isFn(objectOrClass)
+	const UserContext = isClass ? objectOrClass as any : function() {return this}
+	!isClass && (UserContext.prototype = objectOrClass)
 
-export default context
-
-function context(UserContext:ContextClass)
-function context(properties:object)
-function context(arg1) {
-	const hasUserContext = isFn(arg1)
-	let properties = arg1
-	let UserContext = hasUserContext ? arg1 : class extends Context {}
-
-	if(!(UserContext.prototype instanceof Context)) throw new Error('Must derive from Context')
-
-	const symContext = Symbol(`eldc-ctx-${UserContext.name}`)
+	const ContextName = (UserContext as any).name || 'anonymous'
+	const symContext = Symbol(`eldc-ctx-${ContextName}`)
 
 	const defaults = create(null)
-	const propNames:string[] = []
+	const properties:string[] = []
 
-	function Factory(...args) {
-		let fn = args[args.length - 1]
-		fn = fn && isFn(fn) && fn
-		let initial = args[0]
-		initial = isObj(initial) ? initial : undefined
+	const initialize = UserContext.prototype && UserContext.prototype.initialize
 
-		let factories:any[]|null = null
+	function newContext(id, parent, initial) {
+		const context = new UserContext()
+		defineProperty(context, 'id', {get() {return id}})
+		let idx = properties.length
+		while(idx) {
+			const property = properties[--idx]
+			context[property] = initial[property]
+		}
+		if(initialize) initialize.call(context, parent)
+		return context
+	}
+
+	let wipFrame:Frame|undefined = undefined
+
+	function AssemblerRunnerAccessor(...args) {
+		const parent = current
+
+		let coassemblers:any[]|null = null
 
 		for(let i = 0, len = args.length; i < len; ++i) {
 			const arg = args[i]
-			const factory = arg && arg[symFactory]
-			if(!factory) continue
-			factories = factories || []
-			factories.push(factory)
+			const coassembler = arg && arg[symAssemble]
+			if(!coassembler) continue
+			coassemblers = coassemblers || []
+			coassemblers.push(coassembler)
 		}
 
-		const initialDefaults = assign(create(null), defaults)
-		let hadInitial = false
-		const within = current
-		function run(fn?, args?) {
-			if(runInNewFrame) {
-				if(initial) {
-					assign(initialDefaults, defaults)
-					assign(initialDefaults, initial)
-					hadInitial = true
+		let fn = args[args.length - 1]
+		let fn$ = $(fn && isFn(fn) && fn)
+
+		const defaultsThenTemplate = assign(create(null), defaults)
+		let template = args[0]
+		template = isObj(template) ? template : undefined
+		let hadTemplate = false
+
+		const assemble = run[symAssemble] = run
+		function run(fn$?, args?) {
+
+			// assemble()
+			// - assemble a new instance of symContext into wipFrame
+			if(wipFrame) {
+				if(template) {
+					assign(defaultsThenTemplate, defaults)
+					assign(defaultsThenTemplate, template)
+					hadTemplate = true
 				}
-				else if(hadInitial) {
-					assign(initialDefaults, defaults)
-					hadInitial = false
+				else if(hadTemplate) {
+					assign(defaultsThenTemplate, defaults)
+					hadTemplate = false
 				}
-				const withinContext = getPrototypeOf(runInNewFrame)[symContext]
-				const newContext = new UserContext(propNames, initialDefaults, withinContext)
-				newContext.id = runInNewFrame.id
-				runInNewFrame[symContext] = newContext
-				return
+
+				const withinContext = getPrototypeOf(wipFrame)[symContext]
+				wipFrame[symContext] = newContext(wipFrame.id, withinContext, defaultsThenTemplate)
 			}
-			const newFrame = runInNewFrame = Frame.New(within)
-			try {
-				run()
-				if(factories) for(let idx = factories.length; idx--;) factories[idx]()
+
+			// run(),
+			//  - call our assembler
+			//  - call any other co-assemblers,
+			//  - all on same wipFrame,
+			//  - then runAsync ourselves
+			else {
+				const newFrame = new Frame(parent)
+				try {
+					wipFrame = newFrame
+					assemble()
+					if(coassemblers) for(let idx = coassemblers.length; idx--;) coassemblers[idx]()
+				}
+				finally {wipFrame = undefined}
+				return runAsync(newFrame, fn$, this, args)
 			}
-			finally {runInNewFrame = undefined}
-			return runAsync(newFrame, fn, this, args)
 		}
-		run[symFactory] = run
-		return fn ? run(fn) : run
+
+		return fn$ ? run(fn$) : assemble
 	}
-	defineProperty(Factory, 'name', {configurable: false, value: UserContext.name + 'Factory'})
 
-	const hasSwitching = UserContext.prototype.switching !== undefined
-	let previousContext:Context|undefined
-	for(const name of getOwnPropertyNames(properties)) {
-		if(hasUserContext && name === 'name' || name === 'length' || name === 'prototype') continue
-		if(name === 'Top' || name === 'Current') continue
+	defineProperty(AssemblerRunnerAccessor, 'name', {configurable: false, value: ContextName + '$FactoryRunner'})
 
-		const propDef = {configurable: false, enumerable: true}
-		const defaultValue = properties[name]
+	const hasSoftSwitch = UserContext.prototype.softSwitch !== undefined
+	let previousContext:object|undefined
+	for(const name of getOwnPropertyNames(objectOrClass)) {
+		if(isClass && name === 'name' || name === 'length' || name === 'prototype') continue
+		if(name === 'Current') continue
+
+		const propDef = {enumerable: true}
+		const defaultValue = objectOrClass[name]
 
 		if(isFn(defaultValue)) {
-			if(hasSwitching)
-				properties[name] = function(...args) {
-					const currentContext = current[symContext]
-					if(currentContext !== previousContext) {
-						currentContext.switching(previousContext)
-						previousContext = currentContext
+			const value =
+				hasSoftSwitch
+					? function sw() {
+						const currentContext = current[symContext]
+						if(currentContext !== previousContext) {
+							currentContext.softSwitch(previousContext)
+							previousContext = currentContext
+						}
+						if(current.id === 0) throw new ContextError(sw, `${ContextName}.${name} called outside of any context.`)
+						return defaultValue.apply(currentContext, arguments)
 					}
-					// TODO: unwind
-					return defaultValue.call(this, ...args)
-				}
+					: function sw() {
+						if(current.id === 0) throw new ContextError(sw, `${ContextName}.${name} called outside of any context.`)
+						return defaultValue.apply(current[symContext], arguments)
+					}
 
-			assign(propDef, {writable: false, value: properties[name]})
+			assign(propDef, {value})
 		}
 		else {
+			properties.push(name)
 			defaults[name] = defaultValue
 
+			const {get, set} = getOwnPropertyDescriptor(objectOrClass, name)!
 			assign(propDef, {
-				get() {return current[symContext][name]},
-				set(value) {return current[symContext][name] = value}
+				get: get
+					? function g() {
+						if(current.id === 0) throw new ContextError(g, `${ContextName}.${name} accessed outside of Context.`)
+						return get.call(current[symContext])
+					}
+					: function g() {
+						if(current.id === 0) throw new ContextError(g, `${ContextName}.${name} accessed outside of Context.`)
+						return current[symContext][name]
+					},
+				set: set
+					? function s(value) {
+						if(current.id === 0) throw new ContextError(s, `${ContextName}.${name} set outside of Context.`)
+						return set.call(current[symContext], value)
+					}
+					: !get
+						? function s(value) {
+							if(current.id === 0) throw new ContextError(s, `${ContextName}.${name} set outside of Context.`)
+							return current[symContext][name] = value
+						}
+						: undefined
 			})
 		}
 
-		propNames.push(name)
-		defineProperty(Factory, name, propDef)
+		isClass && defineProperty(objectOrClass, name, propDef)
+		defineProperty(AssemblerRunnerAccessor, name, propDef)
 	}
 
-	try {
-		runInNewFrame = current
-		const loopContext = new UserContext(propNames, defaults, null)
-		current[symContext] = loopContext
-		defineProperty(UserContext, 'Current', {get() {return current[symContext]}})
-		defineProperty(UserContext, 'Top', {value: loopContext})
-		if(hasSwitching) loopContext.switching(undefined)
-		previousContext = loopContext
-	}
-	finally {
-		runInNewFrame = undefined
-	}
+	const topContext = newContext(current.id, null, defaults)
+	current[symContext] = topContext
+	defineProperty(UserContext, 'Current', {get() {
+		if(current.id === 0) throw new ContextError(get, `Internal ${ContextName}.Current accessed outside of Context.`)
+		return current[symContext]
+	}})
+	previousContext = topContext
 
-	freeze(Factory)
-	return Factory
+	freeze(AssemblerRunnerAccessor)
+	return AssemblerRunnerAccessor as unknown as typeof objectOrClass
 }
 
+defineProperty(Context, 'Current', {get() {return current}})
 
+
+
+freeze(Context)
+
+global_.Context = Context
 
 
 
@@ -374,7 +489,7 @@ function frameContinuationArgs(original) {
 			const arg = args[idx]
 			if(typeof arg === 'function') args[idx] = frameContinuation(arg)
 		}
-		original.call(this, ...args)
+		original.apply(this, args)
 	})
 }
 
@@ -418,7 +533,7 @@ function patchResultOnEach(type, spec, shouldFrameCall, isProto) {
 					else if(len === 3) result = original.call(this,args[0],args[1],args[2])
 					else if(len === 4) result = original.call(this,args[0],args[1],args[2],args[3])
 					else if(len === 5) result = original.call(this,args[0],args[1],args[2],args[3],args[4])
-					else result = original.call(this, ...args)
+					else result = original.apply(this, args)
 
 					if(result) patchMethod(result, resultMethodName, frameContinuationArgs)
 					return result
@@ -446,8 +561,7 @@ function patch(using) {
 		const modName = steps.shift()
 		let mod
 		try {
-			// @ts-ignore path will never be undef|null|!string
-			mod = modName === 'global' ? global_ : require(modName)
+			mod = modName === 'global' ? global_ : require(modName!)
 		}
 		catch {
 			continue
@@ -458,8 +572,7 @@ function patch(using) {
 		let typeName = ''
 		while(steps.length) {
 			parentType = type
-			// @ts-ignore path will never be undef|null|!string
-			typeName = steps.shift()
+			typeName = steps.shift()!
 			type = type[typeName]
 		}
 
@@ -477,6 +590,7 @@ const patchTable = {
 	node: {
 		'6.0.0': {
 			'global': {own: ['setImmediate', 'setInterval', 'setTimeout']},
+			/*
 			'child_process': {
 				own: [{callrv: {exec: ['send'], execFile: ['send'], fork: ['send'], spawn: ['send']}}]
 			},
@@ -513,6 +627,7 @@ const patchTable = {
 			'http2': {own: ['connect', 'createServer', 'createSecureServer']},
 			'http2.Http2ServerRequest': {proto: ['setTimeout']},
 			'http2.Http2ServerResponse': {proto: ['end', 'setTimeout', 'write', 'createPushResponse']},
+			*/
 			/*
 			these all end up calling EventEmitter.once, .on, etc. or process.nextTick()
 			so don't need to patch.. probably others that dont need it, but doesn't hurt
@@ -524,7 +639,7 @@ const patchTable = {
 			Http2Server: {proto: ['close', 'setTimeout']},
 			Http2SecureServer: {proto: ['close', 'setTimeout']},
 			*/
-
+			/*
 			'https': {own: ['get', 'request']},
 			'https.Server': {proto: ['close', 'setTimeout']},
 			'inspector.Session': {proto: ['post']},
@@ -543,6 +658,7 @@ const patchTable = {
 			'dgram.Socket': {proto: ['bind', 'close', 'send']},
 			'zlib': {own: ['deflate', 'deflateRaw', 'gunzip', 'gzip', 'inflate', 'inflateRaw', 'unzip']},
 			'zlib.Gzip': {proto: ['close', 'flush', 'params']}
+			*/
 		},
 		/*
 		'6.0.1': {
@@ -561,20 +677,20 @@ const eldc = '_$^[@{#(*<!%&-eldc-&%!>*)#}@]^$_'
 
 function cc(char) {return char.charCodeAt(0)}
 
-const CC_SQUOTE = cc("'")
-const CC_DQUOTE = cc('"')
-const CC_TICK = cc('`')
-const CC_SLASH = cc('/')
-const CC_ASTERISK = cc('*')
-const CC_BACKSLASH = cc('\\')
-const CC_NEWLINE = cc('\n')
-const CC_LCURLY = cc('{')
-const CC_RCURLY = cc('}')
-const CC_LPAREN = cc('(')
-const CC_ASYNC = 'async'.split('').map(ch => cc(ch))
-const CC_GEN_FN = 'function*'.split('').map(ch => cc(ch))
+const CC_SQUOTE = cc("'")|0
+const CC_DQUOTE = cc('"')|0
+const CC_TICK = cc('`')|0
+const CC_SLASH = cc('/')|0
+const CC_ASTERISK = cc('*')|0
+const CC_BACKSLASH = cc('\\')|0
+const CC_NEWLINE = cc('\n')|0
+const CC_LCURLY = cc('{')|0
+const CC_RCURLY = cc('}')|0
+const CC_LPAREN = cc('(')|0
+const CC_ASYNC = 'async'.split('').map(ch => cc(ch)|0)
+const CC_GEN_FN = 'function*'.split('').map(ch => cc(ch)|0)
 const CC_WHT_SPC:boolean[] = []
-' \f\n\r\t\v\u00a0\u1680\u2000\u200a\u2028\u2029\u202f\u205f\u3000\ufeff'.split('').forEach(ch => CC_WHT_SPC[cc(ch)] = true)
+' \f\n\r\t\v\u00a0\u1680\u2000\u200a\u2028\u2029\u202f\u205f\u3000\ufeff'.split('').forEach(ch => CC_WHT_SPC[cc(ch)|0] = true)
 
 const ST_CODE = 0
 const ST_SQUOTE = 1
@@ -609,7 +725,7 @@ function wrapGeneratorFns(source:string) {
 	let nameStart = -1
 
 	for(let pos = 0; pos < len; ++pos) {
-		const ch = source.charCodeAt(pos)
+		const ch = source.charCodeAt(pos)|0
 
 		switch(state) {
 		case ST_CODE:
@@ -639,7 +755,7 @@ function wrapGeneratorFns(source:string) {
 						const isAnon = name.length === 0
 						const original = `${func}${sig}${body}`
 						const decl = isAnon ? `(${original})` : `(${name}['${eldc}']||(${name}['${eldc}']=${original}))`
-						const wrapped = `function ${sig}{const g=${decl}.call(this,...arguments);g['${eldc}']=Context.Frame;return g}`
+						const wrapped = `function ${sig}{const g=${decl}.call(this,...arguments);g['${eldc}']=Context.Current;return g}`
 
 						genFn = genFnStack.pop()
 						genFn.parts.push(wrapped)
@@ -829,38 +945,47 @@ catch {}
 
 patch(patchTable.node['6.0.0'])
 
+
+
 const oThen = Promise.prototype.then
+
+function f(c) {return c && frameContinuation(c) || c}
 
 // for node
 patchMethod(Promise.prototype, 'then', original => {
 	return function(onfulfilled, onrejected) {
-		if(!this[symFrame]) {
-			// only true when node host is calling 'then()' from microtask
-			// implementing PromiseResolveThenableJob which calls performPromiseThen
-			this[symFrame] = current
-		}
+		// only true when node host is calling 'then()' from microtask
+		// implementing PromiseResolveThenableJob which calls performPromiseThen
+		if(!this[symFrame]) this[symFrame] = current
 
 		// by this point, the promise object is coupled to the frame it
 		// was created in, stored in this[symFrame]
 		// further, the promise callbacks run in context in which 'then()' called :)
 		// and many thens can run in their own separate contexts
-		return original.call(this, frameAwaitChain(onfulfilled), frameAwaitChain(onrejected))
+		//return original.call(this, frameAwaitChain(onfulfilled), frameAwaitChain(onrejected))
+		return original.call(this, frameResolver(onfulfilled), frameResolver(onrejected))
 	}
 })
 
 const oCatch = Promise.prototype.catch
 Promise.prototype.catch = {
-	['catch'](onrejected) {return oCatch.call(this, frameAwaitChain(onrejected))}
+	['catch'](onrejected) {
+		return oCatch.call(this, frameContinuation(onrejected))
+	}
 }['catch']
 
-class UserlandPromise extends global_.Promise {
-	[symFrame]: any
-
-	// node host never calls this.. if host does then wont matter
-	constructor(fn) {
-		super(fn)
-		this[symFrame] = current
+const oFinally = Promise.prototype.finally
+Promise.prototype.finally = {
+	['finally'](onfinally) {
+		return oFinally.call(this, frameContinuation(onfinally))
 	}
+}['finally']
+
+let gotResolve
+let gotReject
+function get(resolve, reject) {
+	gotResolve = resolve
+	gotReject = reject
 }
 
 /*
@@ -871,6 +996,7 @@ if(oCatch) UserlandPromise.prototype.catch = {
 */
 
 global_.Promise = UserlandPromise
+
 
 /*
 const async_wrap = process.binding('async_wrap')
