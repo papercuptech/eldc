@@ -16,14 +16,18 @@ import {
 	symAssembler,
 	symFrame,
 	symTraps,
+	symNext,
+	symContext,
 } from 'host'
 
 import {
 	current,
 	Frame,
-
-
 } from 'frame'
+
+import {
+	trap,
+} from 'intercept'
 
 interface IContext {
 	<T>(objectOrClass:T):typeof objectOrClass
@@ -133,7 +137,7 @@ function Context(arg1:any, arg2?:any) {
 					if(coassemblers) for(let idx = coassemblers.length; idx--;) coassemblers[idx]()
 				}
 				finally {wipFrame = undefined}
-				return newFrame.runAsync(fn, this, args)
+				return newFrame.run(fn, this, args)
 			}
 		}
 
@@ -154,17 +158,17 @@ function Context(arg1:any, arg2?:any) {
 		if(isFn(defaultValue)) {
 			const value =
 				hasSoftSwitch
-					? function softSwitch() {
+					? function methodInContext() {
 						const currentContext = current.frame[symContext]
 						if(currentContext !== previousContext) {
 							currentContext.softSwitch(previousContext)
 							previousContext = currentContext
 						}
-						if(current.frame.id === 0) throw new ContextError(softSwitch, `${contextName}.${name} called outside of any context.`)
+						if(current.frame.id === 0) throw new ContextError(methodInContext, `${contextName}.${name}() called out of context.`)
 						return defaultValue.apply(currentContext, arguments)
 					}
-					: function softSwitch() {
-						if(current.frame.id === 0) throw new ContextError(softSwitch, `${contextName}.${name} called outside of any context.`)
+					: function methodInContext() {
+						if(current.frame.id === 0) throw new ContextError(methodInContext, `${contextName}.${name}() called out of context.`)
 						return defaultValue.apply(current.frame[symContext], arguments)
 					}
 
@@ -179,24 +183,24 @@ function Context(arg1:any, arg2?:any) {
 				get: get
 					? function getInContext() {
 						const {frame} = current
-						if(frame.id === 0) throw new ContextError(getInContext, `${contextName}.${name} accessed outside of Context.`)
+						if(frame.id === 0) throw new ContextError(getInContext, `${contextName}.${name} accessed out of context.`)
 						return get.call(frame[symContext])
 					}
 					: function getInContext() {
 						const {frame} = current
-						if(frame.id === 0) throw new ContextError(getInContext, `${contextName}.${name} accessed outside of Context.`)
+						if(frame.id === 0) throw new ContextError(getInContext, `${contextName}.${name} accessed out of context.`)
 						return frame[symContext][name]
 					},
 				set: set
 					? function setInContext(value) {
 						const {frame} = current
-						if(frame.id === 0) throw new ContextError(setInContext, `${contextName}.${name} set outside of Context.`)
+						if(frame.id === 0) throw new ContextError(setInContext, `${contextName}.${name} set out of context.`)
 						return set.call(frame[symContext], value)
 					}
 					: !get
 						? function setInContext(value) {
 							const {frame} = current
-							if(frame.id === 0) throw new ContextError(setInContext, `${contextName}.${name} set outside of Context.`)
+							if(frame.id === 0) throw new ContextError(setInContext, `${contextName}.${name} set out of context.`)
 							return frame[symContext][name] = value
 						}
 						: undefined
@@ -209,18 +213,13 @@ function Context(arg1:any, arg2?:any) {
 
 	defineProperty(UserContext, 'Current', {get: function Current() {
 		const {frame} = current
-		if(frame.id === 0) throw new ContextError(Current, `Internal ${contextName}.Current accessed outside of Context.`)
+		if(frame.id === 0) throw new ContextError(Current, `Internal ${contextName}.Current accessed out of context.`)
 		return frame[symContext]
 	}})
 	defineProperty(UserContext, 'Trap', {value: function Trap(address, traps) {
 		const {frame} = current
-		if(frame.id === 0) throw new ContextError(Trap, `Internal ${contextName}.Trap accessed outside of Context.`)
-		return frame.trap(frame[symContext], address, traps)
-	}})
-	defineProperty(UserContext, 'Frame', {value: function Frame(address, fn) {
-		const {frame} = current
-		if(frame.id === 0) throw new ContextError(Frame, `Internal ${contextName}.Frame accessed outside of Context.`)
-		//return frame.frame(address, fn)
+		if(frame.id === 0) throw new ContextError(Trap, `Internal ${contextName}.Trap() called out of context.`)
+		return trap(frame, frame[symContext], address, traps)
 	}})
 
 	const topContext = newContext(current.frame, null, defaults)
@@ -232,6 +231,11 @@ function Context(arg1:any, arg2?:any) {
 }
 
 defineProperty(Context, 'Current', {get() {return current.frame}})
+defineProperty(Context, 'Bind', {value: function Bind(fn) {
+	const {frame} = current
+	if(frame.id === 0) throw new ContextError(Bind, `Context.Bind() called out of context.`)
+	//return frame.frame(address, fn)
+}})
 
 
 

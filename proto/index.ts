@@ -886,7 +886,7 @@ function wrapGeneratorFns(source:string) {
 export const oFunction = global_.Function
 
 try {
-	const GeneratorFunctionPrototype = getPrototypeOf(Function('return function*(){}')())
+	const GeneratorFunctionPrototype = Function('return Object.getPrototypeOf(function*(){})')()
 	const GeneratorObjectPrototype = GeneratorFunctionPrototype.constructor.prototype.prototype
 	const oNext = GeneratorObjectPrototype.next
 	defineProperty(GeneratorObjectPrototype, 'next', {

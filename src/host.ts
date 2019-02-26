@@ -2,8 +2,8 @@ const hasSymbol = typeof Symbol === 'function'
 
 
 function sym(desc, prefix = '_$_eldc_$_') {
-	if(hasSymbol) return Symbol(desc)
-	return prefix + desc
+	if(hasSymbol) return Symbol(desc) as unknown as string
+	return (prefix + desc)
 }
 
 let canExportSyms = true
@@ -53,6 +53,7 @@ const {
 function isFn(thing) {return typeof thing === 'function'}
 function isObj(thing) {return thing !== null && typeof thing === 'object'}
 function isStr(thing) {return typeof thing === 'string'}
+function isArr(thing) {return Array.isArray(thing)}
 
 
 
@@ -80,10 +81,16 @@ const symResultIntercept = sym('eldc-result-intercept')
 
 const symNext = sym('eldc-next')
 
-const symContext = sym('eld-context')
-const symSymbolicId = Symbol()
+const symContext = sym('eldc-context')
+const symSymbolicId = sym('eldc-symbolic-id')
 
-const symLink = sym('')
+const symLink = sym('eldc-link')
+
+const symCb = sym('eldc-cb')
+const symContinuation = sym('eldc-continuation')
+const symCoupling = sym('eldc-coupling')
+
+const symEntry = sym('eldc-intercept-descriptor')
 
 export {
 	global_,
@@ -100,11 +107,14 @@ export {
 	keys,
 	setPrototypeOf,
 
+	isArr,
 	isFn,
 	isObj,
 	isStr,
 
 	disguise,
+
+	sym,
 
 	symAssembler,
 	symCbProps,
@@ -120,6 +130,12 @@ export {
 	symSymbolicId,
 
 	symLink,
+
+	symCb,
+	symContinuation,
+	symCoupling,
+
+	symEntry,
 }
 
 
