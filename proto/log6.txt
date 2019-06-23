@@ -1,0 +1,160 @@
+C:\src\node\Release\node.exe --harmony-await-optimization C:\src\eldc\obj\test-node.js
+import: 11.564ms
+install: 0.150ms
+intercept: 0.198ms
+
+entry
+0 run
+r -in  0  to  1
+1 before await loop
+1 after tick
+
+next
+1 run
+1 nap prom
+1 new prom
+
+1 qing  new 1
+r -out 1  to  0
+0 qing  r o 0
+
+job
+0 isForResolver false
+a -new 0  to  1
+
+job
+1 then; user true
+1 new prom
+
+job
+1 isForResolver false
+a -r o 1  to  0
+
+
+0  is 0??
+entry
+
+0 run
+r -in  0  to  1
+1 timer cb
+r -out 1  to  0
+
+job
+0 runRes
+0 qing  rri 1
+rr-in  0  to  1
+rr-out 1  to  0
+0 qing  rro 0
+
+
+
+
+job
+0 isForResolver false
+a -rri 0  to  1
+
+
+
+
+
+
+
+
+
+
+job
+1 isForResolver true
+
+
+
+
+
+
+
+
+job
+1 isForResolver true
+
+job
+1 after tick.next() 1
+--------------------
+next
+1 run
+1 nap prom
+1 new prom
+
+
+
+
+job
+1 isForResolver false
+a -rro 1  to  0
+
+job-v8
+0 then; user true
+0 new prom
+
+
+
+
+
+
+
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0 run
+r -in  0  to  1
+1 timer cb
+r -out 1  to  0
+Error: AnonymousContext.prop accessed out of context.
+(node:18880) UnhandledPromiseRejectionWarning: Error: AnonymousContext.prop accessed out of context.
+    at tick (C:\src\eldc\test-node-genfn.js:44:37)
+    at ctxTwo (C:\src\eldc\test-node-genfn.js:355:51)
+    at processTicksAndRejections (internal/process/next_tick.js:81:5)
+    at processTicksAndRejections (internal/process/next_tick.js:81:5)
+    at runNextTicks (internal/process/next_tick.js:51:3)
+    at processTimers (timers.js:268:7)
+    at runNextTicks (internal/process/next_tick.js:51:3)
+0  is 0??
+0  is 0??
+    at processTimers (timers.js:268:7)
+0  is 0??
+(node:18880) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). (rejection id: 1)
+(node:18880) [DEP0018] DeprecationWarning: Unhandled promise rejections are deprecated. In the future, promise rejections that are not handled will terminate the Node.js process with a non-zero exit code.
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+
+Process finished with exit code 0

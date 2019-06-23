@@ -1,0 +1,108 @@
+C:\src\node\Release\node.exe --harmony-await-optimization C:\src\eldc\obj\test-node.js
+import: 11.278ms
+install: 0.153ms
+intercept: 0.167ms
+next
+1 nap prom
+1 after tick nap/next
+0 isForResolver false isResolver false
+1 then; user true
+1 isForResolver false isResolver false
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+1 timer cb
+ q-in #1
+  resolve()
+ 	 then()
+ q-out #2
+0 #1 isForResolver true isResolver false
+1 #1 isForResolver false isResolver true
+1 #2 isForResolver false isResolver false
+0 after tick.next() 1
+(node:9052) UnhandledPromiseRejectionWarning: Error: AnonymousContext.prop accessed out of context.
+    at ctxTwo (C:\src\eldc\test-node-genfn.js:362:51)
+    at processTicksAndRejections (internal/process/next_tick.js:81:5)
+(node:9052) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). (rejection id: 1)
+(node:9052) [DEP0018] DeprecationWarning: Unhandled promise rejections are deprecated. In the future, promise rejections that are not handled will terminate the Node.js process with a non-zero exit code.
+0  is 0??
+
+
+C:\Users\Paul\AppData\Local\nvs\default\node.exe C:\src\eldc\obj\test-node.js
+import: 10.303ms
+install: 0.116ms
+intercept: 0.132ms
+next
+1 'nap prom'
+1 'new prom'
+Promise { <pending> }
+1 'after tick nap/next'
+0 'isForResolver' false 'isResolver' false
+1 'then; user' true
+1 'new prom'
+1 'then; user' false
+1 'isForResolver' false 'isResolver' false
+0 ' is 0??'
+0 ' is 0??'
+0 ' is 0??'
+0 ' is 0??'
+0 ' is 0??'
+0 ' is 0??'
+0 ' is 0??'
+0 ' is 0??'
+0 ' is 0??'
+0 ' is 0??'
+0 ' is 0??'
+1 'timer cb'
+0 'isForResolver' true 'isResolver' false
+1 'isForResolver' false 'isResolver' true
+1 'isForResolver' false 'isResolver' false
+0 'isForResolver' true 'isResolver' false
+1 'after tick.next() 1'
+1 'leaving await loop' 'Two'
+1 'isForResolver' false 'isResolver' true
+1 'isForResolver' false 'isResolver' false
+0 ' is 0??'
+
+
+C:\src\node\Release\node.exe --harmony-await-optimization C:\src\eldc\obj\test-node.js
+import: 12.291ms
+install: 0.163ms
+intercept: 0.175ms
+next
+1 nap prom
+1 new prom
+Promise { <pending> }
+1 after tick nap/next
+0 isForResolver false isResolver false
+1 then; user true
+1 new prom
+1 isForResolver false isResolver false
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+1 timer cb
+(node:4944) UnhandledPromiseRejectionWarning: Error: AnonymousContext.prop accessed out of context.
+0 isForResolver true isResolver false
+    at ctxTwo (C:\src\eldc\test-node-genfn.js:363:51)
+1 isForResolver false isResolver true
+1 isForResolver false isResolver false
+    at processTicksAndRejections (internal/process/next_tick.js:81:5)
+0 after tick.next() 1
+0  is 0??
+    at runNextTicks (internal/process/next_tick.js:51:3)
+    at processTimers (timers.js:268:7)
+(node:4944) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). (rejection id: 1)
+(node:4944) [DEP0018] DeprecationWarning: Unhandled promise rejections are deprecated. In the future, promise rejections that are not handled will terminate the Node.js process with a non-zero exit code.
+0  is 0??

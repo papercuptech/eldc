@@ -1,0 +1,15 @@
+async function as(v) {
+	return await v
+}
+
+function m() {
+	as(1)
+	as(2)
+	as(3)
+}
+
+if await is a promise	just re-uses,
+if not it creates a new promise to wrap value
+
+queues 'performPromiseThen'
+

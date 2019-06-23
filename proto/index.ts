@@ -22,7 +22,8 @@ export function log(...args) {
 	_plog.push(util.format(pad(4,`${cur()}`) + ': ',...args))
 }
 
-let dbgLog = true
+let dbgLog = false
+//let dbgLog = true
 function dbg(...args) {
 	if(!dbgLog) return
 	log(...args)
@@ -451,11 +452,10 @@ defineProperty(Context, 'Current', {get() {return current}})
 
 
 
-freeze(Context)
 
 global_.Context = Context
 
-
+Context.log = log
 
 
 
@@ -755,7 +755,13 @@ function wrapGeneratorFns(source:string) {
 						const isAnon = name.length === 0
 						const original = `${func}${sig}${body}`
 						const decl = isAnon ? `(${original})` : `(${name}['${eldc}']||(${name}['${eldc}']=${original}))`
-						const wrapped = `function ${sig}{const g=${decl}.call(this,...arguments);g['${eldc}']=Context.Current;return g}`
+						//const wrapped = `function ${sig}{const g=${decl}.call(this,...arguments);g['${eldc}']=Context.Current;return g}`
+						const wrapped = `function ${sig}{
+							const g=${decl}.call(this,...arguments);
+							g['${eldc}']=Context.Current;
+							Context.log('new gen')
+							return g
+						}`
 
 						genFn = genFnStack.pop()
 						genFn.parts.push(wrapped)
@@ -892,7 +898,9 @@ try {
 	defineProperty(GeneratorObjectPrototype, 'next', {
 		configurable: true,
 		enumerable: true,
-		value: function() {return runAsync(this[eldc], oNext, this, arguments)}
+		value: function() {
+			return runAsync(this[eldc], oNext, this, arguments)
+		}
 	})
 
 	const AsyncGeneratorFunctionPrototype = getPrototypeOf(Function('return async function*(){}')())
@@ -901,7 +909,10 @@ try {
 	defineProperty(AsyncGeneratorObjectPrototype, 'next', {
 		configurable: true,
 		enumerable: true,
-		value: function() {return runAsync(this[eldc], oAsyncNext, this, arguments)}
+		value: function() {
+			Context.log('next')
+			return runAsync(this[eldc], oAsyncNext, this, arguments)
+		}
 	})
 
 	// TODO: what about eval?

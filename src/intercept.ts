@@ -4,8 +4,9 @@ import {
 	defineProperty,
 	getOwnPropertyDescriptor,
 	getPrototypeOf,
+	setPrototypeOf,
+	isArr,
 	isFn,
-	disguise,
 	symContext,
 	symIntercepted,
 	symNext,
@@ -17,7 +18,7 @@ import {
 	symCoupling,
 	symEntry,
 	sym,
-} from 'host'
+} from 'common'
 
 import {
 	current,
@@ -31,23 +32,22 @@ class InterceptError extends Error {
 	}
 }
 
-function intercept(address, instance?) {
-	const entry = address[symEntry]
+function intercept(entry, instance?) {
 	if(!instance)
 		if(entry.state === 'intercepted') return
 		else entry.state = 'intercepted'
 	const {path, make, root, implement} = entry
 	if(!path || !make) return false
+	let idx = instance ? 0 : 1
 	instance = instance || root(path[0])
-	let idx = 1
 	let end = path.length - 1
 	let name = path[idx]
 	let prevName = ''
 	while(instance && idx < end) {
-		instance = instance[name]
+		instance = name === '__proto__' ? getPrototypeOf(instance) : instance[name]
 		prevName = name
 		name = path[++idx]
-		if(name === '_' && prevName === 'prototype' && instance) {
+		if(instance && name === '_' && (prevName === 'prototype' || prevName === '__proto__')) {
 			name = path[++idx]
 			const start = instance
 			while(instance && !instance.hasOwnProperty(name)) instance = getPrototypeOf(instance)
@@ -56,30 +56,20 @@ function intercept(address, instance?) {
 	}
 	if(!instance) return false
 	const desc = getOwnPropertyDescriptor(instance, name)
-	if(!desc || !desc.configurable) return false
+	if(desc && !desc.configurable) return false
 	let methodOrClass = instance[name]
+	if(methodOrClass && methodOrClass[symIntercepted]) return true
 	methodOrClass = implement && implement(methodOrClass, instance) || methodOrClass
 	if(!isFn(methodOrClass)) return false
-	if(methodOrClass[symIntercepted]) return methodOrClass
 	const intercept = make(entry, methodOrClass, instance)
 	intercept[symIntercepted] = true
 	defineProperty(instance, name, {
 		configurable: true,
-		enumerable: desc.enumerable,
-		writable: desc.writable || !!desc.set,
+		enumerable: desc && desc.enumerable || true,
+		writable: desc && (desc.writable || !!desc.set) || true,
 		value: intercept
 	})
 	return true
-}
-
-function rootGlobal() {return global_}
-function rootRequire(name) {return require(name)}
-function rootEval(expr) {return Function(expr)()}
-
-function interceptResult(resultIntercepts, result) {
-	let idx = resultIntercepts.length
-	while(idx--) intercept(resultIntercepts[idx], result)
-	return result
 }
 
 let nextConstruct
@@ -102,9 +92,6 @@ namespace callNextConstruct {
 	}
 }
 
-let link
-let linkInstance
-
 let executeMethod
 let executeThis
 let executeLink
@@ -113,11 +100,9 @@ let nextExecute
 function callNextExecute(args) {
 	if(!nextExecute) {
 		if(executeMethod) {
-			const fn = executeMethod, t = executeThis, a = args, l = a && a.length || 0
-			const result = l<1?fn.call(t):l<2?fn.call(t,a[0]):l<3?fn.call(t,a[0],a[1]):l<4?fn.call(t,a[0],a[1],a[2]):
-				l<5?fn.call(t,a[0],a[1],a[2],a[3]):l<6?fn.call(t,a[0],a[1],a[2],a[3],a[4]):l<7?fn.call(t,a[0],a[1],a[2],a[3],a[4],a[5]):
-				l<8?fn.call(t,a[0],a[1],a[2],a[3],a[4],a[5],a[6]):l<9?fn.call(t,a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7]):fn.apply(t,a)
-			return executeResultIntercepts && result && interceptResult(executeResultIntercepts, result) || result
+			const result = executeMethod.apply(executeThis, args)
+			return executeResultIntercepts && executeResultIntercepts.length
+				&& result && interceptResult(executeResultIntercepts, result) || result
 		}
 		return undefined
 	}
@@ -163,17 +148,38 @@ function callNextException(ex) {
 	return throwEx
 }
 
+let disDesc = {configurable: true, value: undefined}
+let disguiseId = 0
+function disguise(original, mask) {
+	disDesc.value = original.name; defineProperty(mask, 'name', disDesc)
+	disDesc.value = original.length; defineProperty(mask, 'length', disDesc)
+	setPrototypeOf(mask, original)
+	return mask
+}
+
+
+function interceptResult(resultIntercepts, result) {
+	let idx = resultIntercepts.length
+	while(idx--) {
+		const entry = resultIntercepts[idx]
+		intercept(entry, result)
+		if(entry.isPrototype) resultIntercepts.pop()
+	}
+	return result
+}
+
+
+let link
+let linkInstance
 const tempLinkInstance = {}
+
 function makeClassIntercept(entry, Class) {
 	const {sid, frameArgs, frameResult, resultIntercepts, isPerCall} = entry
 	return disguise(Class, class Interceptor extends Class {
 		constructor() {
-			const a = arguments, l = a && a.length || 0
 			const {frame} = current
 			if(frame.id === 0) {
-				l<1?super():l<2?super(a[0]):l<3?super(a[0],a[1]):l<4?super(a[0],a[1],a[2]):
-				l<5?super(a[0],a[1],a[2],a[3]):l<6?super(a[0],a[1],a[2],a[3],a[4]):l<7?super(a[0],a[1],a[2],a[3],a[4],a[5]):
-				l<8?super(a[0],a[1],a[2],a[3],a[4],a[5],a[6]):l<9?super(a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7]):super(...arguments)
+				super(...arguments)
 				return
 			}
 			linkInstance = tempLinkInstance
@@ -181,19 +187,15 @@ function makeClassIntercept(entry, Class) {
 			frameArgs && frameArgs(arguments)
 			const trap = frame[sid]
 			if(!trap) {
-				l<1?super():l<2?super(a[0]):l<3?super(a[0],a[1]):l<4?super(a[0],a[1],a[2]):
-				l<5?super(a[0],a[1],a[2],a[3]):l<6?super(a[0],a[1],a[2],a[3],a[4]):l<7?super(a[0],a[1],a[2],a[3],a[4],a[5]):
-				l<8?super(a[0],a[1],a[2],a[3],a[4],a[5],a[6]):l<9?super(a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7]):super(...arguments)
-				resultIntercepts && this && interceptResult(resultIntercepts, this)
+				super(...arguments)
+				resultIntercepts && resultIntercepts.length && this && interceptResult(resultIntercepts, this)
 				return this
 			}
 			if(link && !isPerCall) moveCoupling(this, tempLinkInstance)
 			try {
 				trap.construct && (nextConstruct = trap.construct) && callNextConstruct(arguments)
-				l<1?super():l<2?super(a[0]):l<3?super(a[0],a[1]):l<4?super(a[0],a[1],a[2]):
-				l<5?super(a[0],a[1],a[2],a[3]):l<6?super(a[0],a[1],a[2],a[3],a[4]):l<7?super(a[0],a[1],a[2],a[3],a[4],a[5]):
-				l<8?super(a[0],a[1],a[2],a[3],a[4],a[5],a[6]):l<9?super(a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7]):super(...arguments)
-				resultIntercepts && this && interceptResult(resultIntercepts, this)
+				super(...arguments)
+				resultIntercepts && resultIntercepts.length && this && interceptResult(resultIntercepts, this)
 				if(trap.execute) {
 					executeLink = link
 					executeThis = this
@@ -213,32 +215,26 @@ function makeClassIntercept(entry, Class) {
 	})
 }
 
-function makeMethodIntercept(entry, fn, instance) {
+function makeMethodIntercept(entry, method, instance) {
 	const {sid, frameArgs, frameResult, resultIntercepts, isPerCall} = entry
 	let isTrapping = false
-	return disguise(fn, function intercept(this:any) {
-		const t = this, a = arguments, l = a && a.length || 0
+	return disguise(method, function intercept(this:any) {
 		const {frame} = current
-		if(frame.id === 0)
-			return l<1?fn.call(t):l<2?fn.call(t,a[0]):l<3?fn.call(t,a[0],a[1]):l<4?fn.call(t,a[0],a[1],a[2]):
-				l<5?fn.call(t,a[0],a[1],a[2],a[3]):l<6?fn.call(t,a[0],a[1],a[2],a[3],a[4]):l<7?fn.call(t,a[0],a[1],a[2],a[3],a[4],a[5]):
-				l<8?fn.call(t,a[0],a[1],a[2],a[3],a[4],a[5],a[6]):l<9?fn.call(t,a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7]):fn.apply(t,a)
+		if(frame.id === 0) return method.apply(this, arguments)
 		if(isTrapping) throw new InterceptError(intercept, 'Traps cannot recurse')
 		linkInstance = this
 		link = undefined
 		frameArgs && frameArgs(arguments)
 		const trap = frame[sid]
 		if(!trap) {
-			const result = l<1?fn.call(t):l<2?fn.call(t,a[0]):l<3?fn.call(t,a[0],a[1]):l<4?fn.call(t,a[0],a[1],a[2]):
-				l<5?fn.call(t,a[0],a[1],a[2],a[3]):l<6?fn.call(t,a[0],a[1],a[2],a[3],a[4]):l<7?fn.call(t,a[0],a[1],a[2],a[3],a[4],a[5]):
-				l<8?fn.call(t,a[0],a[1],a[2],a[3],a[4],a[5],a[6]):l<9?fn.call(t,a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7]):fn.apply(t,a)
-			return resultIntercepts && result && interceptResult(resultIntercepts, result) || result
+			const result = method.apply(this, arguments)
+			return resultIntercepts && resultIntercepts.length && result && interceptResult(resultIntercepts, result) || result
 		}
 		isTrapping = true
 		let result
 		executeLink = link
 		executeThis = this
-		executeMethod = fn
+		executeMethod = method
 		executeResultIntercepts = resultIntercepts
 		nextExecute = trap.execute
 		try {result = callNextExecute(arguments)}
@@ -252,7 +248,7 @@ function makeMethodIntercept(entry, fn, instance) {
 	})
 }
 
-function frameContinuation(entry, cb, isResolver = false) {
+function frameCallback(entry, cb, isResolver = false) {
 	if(!cb) return cb
 	if(cb[symCb]) return cb
 	let cbFrame
@@ -272,16 +268,11 @@ function frameContinuation(entry, cb, isResolver = false) {
 		if((continuation = continuations[symCbSid])) return continuation
 		link = link || instanceLink
 	}
-	else link = link || {}
+	else link = link || create(null)
 	let continuationLink = link
 	function trappableCb() {
 		const trap = current.frame[sid]
-		if(!trap) {
-			const t = this, a = arguments, l = a && a.length || 0
-			return l<1?cb.call(t):l<2?cb.call(t,a[0]):l<3?cb.call(t,a[0],a[1]):l<4?cb.call(t,a[0],a[1],a[2]):
-				l<5?cb.call(t,a[0],a[1],a[2],a[3]):l<6?cb.call(t,a[0],a[1],a[2],a[3],a[4]):l<7?cb.call(t,a[0],a[1],a[2],a[3],a[4],a[5]):
-				l<8?cb.call(t,a[0],a[1],a[2],a[3],a[4],a[5],a[6]):l<9?cb.call(t,a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7]):cb.apply(t,a)
-		}
+		if(!trap)	return cb.apply(this, arguments)
 		executeLink = continuationLink
 		executeThis = this
 		executeMethod = cb
@@ -319,7 +310,6 @@ function frameContinuation(entry, cb, isResolver = false) {
 function decouple(continuation, instance) {
 	if(!continuation || !instance) return
 	const {continuations} = getCoupling(instance)
-	if(!continuations) return
 	delete continuations[continuation[symSymbolicId]]
 }
 
@@ -344,10 +334,6 @@ function moveCoupling(to, from) {
 	}
 }
 
-
-
-
-
 function frameObject(props, obj, isProxy) {
 	if(!obj) return
 	let idx = props.length
@@ -355,17 +341,12 @@ function frameObject(props, obj, isProxy) {
 	const desc:any = {configurable: false, enumerable: true}
 	while(idx--) {
 		const {name, entry} = props[idx]
-		desc.get = function() {return passBack(frameContinuation(entry, obj[name]))}
+		desc.get = function() {return passBack(frameCallback(entry, obj[name]))}
 		desc.set = function(v) {return obj[name] = v}
 		defineProperty(proxy, name, desc)
 	}
 	return proxy
 }
-
-
-
-
-
 
 function passBack(continuation) {
 	const {frame} = current
@@ -404,14 +385,31 @@ function trap(frame, context:any, address:any, traps:(() => any)|{construct:()=>
 		trapRec.isLinked = true
 }
 
+
+
+interface Intercept {
+	(address:any/*Address*/, instance?:any):void
+	decouple(continuation:(...args) => any, instance:Object),
+	frameCallback(entry, cb:Function)
+	frameObject()
+	passBack()
+}
+
+const exportIntercept:Intercept = function(addresses) {
+	addresses = isArr(addresses) ? addresses : [addresses]
+	for(let address of addresses)
+		if(!intercept(address[symEntry])) throw Error(`Can't intercept ${address.toString()}`)
+}
+exportIntercept.decouple = decouple
+exportIntercept.frameCallback = frameCallback
+exportIntercept.frameObject = <any>frameObject
+exportIntercept.passBack = <any>passBack
+
 export {
-	intercept,
-	rootGlobal,
-	rootRequire,
-	rootEval,
+	exportIntercept as intercept,
 	makeClassIntercept,
 	makeMethodIntercept,
-	frameContinuation,
+	frameCallback,
 	frameObject,
 	decouple,
 	passBack,

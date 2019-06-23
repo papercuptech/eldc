@@ -1,76 +1,9 @@
 <!DOCTYPE html>
 <html>
-<script>
+<script src="../dist/test.js">
 </script>
 <body >
-<div id='d' onclick='console.log("div onclick")'>test</div>
 <script>
-	"use strict";
-	var queuePromiseJob = Promise.prototype.then.bind(Promise.resolve());
-	queuePromiseJob(function () {
-		console.log('promisejob1');
-		queuePromiseJob(function () {
-			console.log('promisjob2')
-		})
-	});
-	setTimeout(function() {console.log('0 timeout')},0)
-
-	/*
-	function ieVersion(uaString) {
-		uaString = uaString || navigator.userAgent;
-		var match = /\b(MSIE |Trident.*?rv:|Edge\/)(\d+)/.exec(uaString);
-		if (match) return parseInt(match[2])
-	}
-
-	var isIe = ieVersion(navigator.userAgent) !== undefined
-
-	function test(loop, times, fn, t, a) {
-		while(loop--) {
-			var l = a && a.length || 0
-			var iter = times
-			console.time('run')
-
-			while(iter--) {
-				if(isIe) fn.apply(t,a)
-				else
-					l<1?fn.call(t):l<2?fn.call(t,a[0]):l<3?fn.call(t,a[0],a[1]):l<4?fn.call(t,a[0],a[1],a[2]):
-					l<5?fn.call(t,a[0],a[1],a[2],a[3]):l<6?fn.call(t,a[0],a[1],a[2],a[3],a[4]):l<7?fn.call(t,a[0],a[1],a[2],a[3],a[4],a[5]):
-					l<8?fn.call(t,a[0],a[1],a[2],a[3],a[4],a[5],a[6]):l<9?fn.call(t,a[0],a[1],a[2],a[3],a[4],a[5],a[6],a[7]):fn.apply(t,a)
-			}
-
-			console.timeEnd('run')
-		}
-	}
-
-	var ox = {}
-	var wm = new WeakMap()
-	wm.set(ox, function() {c++})
-	var idx = 100
-	while(idx--)
-		wm.set({}, function() {})
-
-	let fn1 = function(a) {c += a}
-	let fn = function(a) {c++; fn1(a)}
-	var c = 0
-	var x = 3
-	//var y = Symbol()
-	test(20, 10000, function() {
-		//var wm = new WeakMap()
-		//let ox = {}
-		//let fn = function() {c++}
-		//wm.set(ox, fn)
-		let fn = function(a) {c++; fn1(a)}
-		fn(x)
-		//wm.get(ox)()
-		//c++
-		//ox[y] = 10//
-		//const x = function() {}
-	}, {}, [1,2,3,4,5,6,7])
-
-	console.log(c)
-
-*/
-
 </script>
 </body>
 </html>

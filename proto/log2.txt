@@ -1,0 +1,108 @@
+C:\src\node\Release\node.exe --harmony-await-optimization C:\src\eldc\obj\test-node.js
+import: 11.434ms
+install: 0.152ms
+intercept: 0.208ms
+0 run
+r -in  0  to  1
+1 before await loop
+1 nap prom
+1 new prom
+1 qing  new 1
+r -out 1  to  0
+0 qing  r o 0
+0 isForResolver false
+a -new 0  to  1
+1 then; user true
+1 new prom
+1 isForResolver false
+a -r o 1  to  0
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+
+0 run
+r -in  0  to  1
+r -out 1  to  0
+0 runRes
+0 qing  rri 1
+rr-in  0  to  1
+rr-out 1  to  0
+0 qing  rro 0
+0 isForResolver false
+a -rri 0  to  1
+1 isForResolver true
+1 isForResolver true
+1 in await loop
+1 nap prom
+1 new prom
+1 isForResolver false
+a -rro 1  to  0
+0 then; user true
+0 new prom
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+
+0 run
+r -in  0  to  1
+r -out 1  to  0
+Error: AnonymousContext.prop accessed out of context.
+(node:20612) UnhandledPromiseRejectionWarning: Error: AnonymousContext.prop accessed out of context.
+    at tick (C:\src\eldc\test-node-genfn.js:43:37)
+    at ctxTwo (C:\src\eldc\test-node-genfn.js:338:51)
+    at processTicksAndRejections (internal/process/next_tick.js:81:5)
+    at runNextTicks (internal/process/next_tick.js:51:3)
+    at processTimers (timers.js:268:7)
+0  is 0??
+    at processTicksAndRejections (internal/process/next_tick.js:81:5)
+0  is 0??
+0  is 0??
+0  is 0??
+    at runNextTicks (internal/process/next_tick.js:51:3)
+    at processTimers (timers.js:268:7)
+(node:20612) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). (rejection id: 1)
+(node:20612) [DEP0018] DeprecationWarning: Unhandled promise rejections are deprecated. In the future, promise rejections that are not handled will terminate the Node.js process with a non-zero exit code.
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+
+Process finished with exit code 0

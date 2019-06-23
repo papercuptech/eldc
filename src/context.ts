@@ -18,7 +18,7 @@ import {
 	symTraps,
 	symNext,
 	symContext,
-} from 'host'
+} from 'common'
 
 import {
 	current,
@@ -29,11 +29,13 @@ import {
 	trap,
 } from 'intercept'
 
+const pdh = 'was here again'
+
 interface IContext {
 	<T>(objectOrClass:T):typeof objectOrClass
-	Current:any
-	Frame:any
-	Trap:any
+	Current:Frame
+	Bind()
+	Trap()
 }
 /*
 interface IContext<T> {
@@ -237,11 +239,9 @@ defineProperty(Context, 'Bind', {value: function Bind(fn) {
 	//return frame.frame(address, fn)
 }})
 
-
-
-freeze(Context)
-
-global_.Context = Context
+export {
+	Context
+}
 
 
 

@@ -1,5 +1,16 @@
 
-let eldc = '_$eldc$_'
+import {
+	assign,
+	symFrameRun,
+} from 'common'
+
+import {
+	current
+} from 'frame'
+
+import Context from 'context'
+
+let eldc = '_$[{eldc}]$_'
 
 function cc(char) {return char.charCodeAt(0)}
 
@@ -31,8 +42,110 @@ const ST_BLOCK_COMMENT_ASTERISK = 9
 const ST_SIGNATURE = 10
 const ST_NAME = 11
 
+let genThis
 
-export function wrapGeneratorFns(source:string) {
+class Generator {}
+class AsyncGenerator {}
+const psuedoParent = {Generator, AsyncGenerator}
+
+function newGenerator(gen) {
+	genThis = gen
+	return new psuedoParent.Generator()
+}
+
+function newAsyncGenerator(gen) {
+	genThis = gen
+	return new psuedoParent.AsyncGenerator()
+}
+
+
+
+function CLASS_Generator() {
+	return class FramedGenerator {
+		constructor() {
+			genThis[symFrameRun] = current.frame.run
+			return genThis
+		}
+	}
+}
+
+
+function CLASS_AsyncGenerator() {
+	return class FramedAsyncGenerator {
+		constructor() {
+			genThis[symFrameRun] = current.frame.run
+			return genThis
+		}
+	}
+}
+
+
+function METHOD_GeneratorMethod(method) {
+	return function() {
+		console.log('next')
+		return this[symFrameRun](method, this, arguments)
+	}
+}
+
+
+function GENERATORS_ROOT() {
+	return function(entry) {
+		entry.root = function() {return psuedoParent}
+	}
+}
+
+function METHOD_Function(Function) {
+	return function() {
+		const lastIdx = arguments.length - 1
+		if(lastIdx < 0) return Function.call(this)
+		let source = arguments[lastIdx]
+		arguments[lastIdx] =
+			source.indexOf('function*') === -1 && source
+			|| wrapGeneratorFns(source, 'Context.newGenerator', 'Context.newAsyncGenerator')
+		return Function.apply(this, arguments)
+	}
+}
+
+function METHOD_module_compile(compile) {
+	return function(content, filename) {
+		content = content.indexOf('function*') === -1 && content
+			|| wrapGeneratorFns(content, 'Context.newGenerator', 'Context.newAsyncGenerator')
+		return compile.call(this, content, filename)
+	}
+}
+
+;(Context as any).newGenerator = newGenerator
+;(Context as any).newAsyncGenerator = newAsyncGenerator
+
+
+
+
+/*
+if(!!(process as any).binding('config').experimentalModules) {
+	const Path = require('path')
+	const fs = require('fs')
+	const {readFile: oReadFile} = fs
+
+	fs.readFile = function(path, ...args) {
+		if(ensureGeneratorFnsWrapped) {
+			const cb = args.length > 1 && args[args.length - 1]
+
+			if(typeof cb === 'function')
+				args[args.length - 1] = function(err, data) {
+					if(err) return cb.call(this, err, data)
+					return cb.call(this, err, ensureGeneratorFnsWrapped(path, data))
+				}
+		}
+
+		return oReadFile.call(this, path, ...args)
+	}
+}
+*/
+
+
+
+
+function wrapGeneratorFns(source:string, newGenerator, newAsyncGenerator) {
 	const len = source.length
 	let partStart = 0
 
@@ -46,7 +159,7 @@ export function wrapGeneratorFns(source:string) {
 	let asyncCc = CC_ASYNC[0]
 	let funcStart = -1
 
-	let genFn = {func: '', name: '', sig: '', parts: <string[]>[], block: 0}
+	let genFn = {func: '', name: '', sig: '', parts: <string[]>[], block: 0, isAsync: false}
 	let genFnStack:any[] = []
 	let nameStart = -1
 
@@ -73,15 +186,16 @@ export function wrapGeneratorFns(source:string) {
 					case CC_RCURLY:
 						if(--genFn.block !== 0 || genFnStack.length === 0) break
 
-						const {func, name, sig, parts} = genFn
+						const {func, name, sig, parts, isAsync} = genFn
 						parts.push(source.substr(partStart, pos - partStart + 1))
 						partStart = pos + 1
 
 						const body = parts.join('')
 						const isAnon = name.length === 0
+						const newIntercept = isAsync ? newAsyncGenerator : newGenerator
 						const original = `${func}${sig}${body}`
 						const decl = isAnon ? `(${original})` : `(${name}['${eldc}']||(${name}['${eldc}']=${original}))`
-						const wrapped = `function ${sig}{const g=${decl}.call(this,...arguments);g['${eldc}']=Context.Frame;return g}`
+						const wrapped = `function ${sig}{return ${newIntercept}(${decl}.apply(this,arguments))}`
 
 						genFn = genFnStack.pop()
 						genFn.parts.push(wrapped)
@@ -99,6 +213,7 @@ export function wrapGeneratorFns(source:string) {
 						if(ch !== CC_ASTERISK) genFnCc = CC_GEN_FN[++genFnCcIdx]
 
 						else {
+							const isAsync = asyncCcIdx !== 0
 							asyncCc = CC_ASYNC[asyncCcIdx = 0]
 							genFnCc = CC_GEN_FN[genFnCcIdx = 0]
 
@@ -106,7 +221,7 @@ export function wrapGeneratorFns(source:string) {
 							partStart = pos + 1
 							genFnStack.push(genFn)
 
-							genFn = {func: source.substr(funcStart, pos - funcStart + 1), name: '', sig: '', parts: [], block: 1}
+							genFn = {func: source.substr(funcStart, pos - funcStart + 1), name: '', sig: '', parts: [], block: 1, isAsync}
 
 							funcStart = -1
 							nameStart = -1
@@ -207,4 +322,16 @@ export function wrapGeneratorFns(source:string) {
 
 	genFn.parts.push(source.substr(partStart, len - partStart))
 	return genFn.parts.join('')
+}
+
+export {
+	GENERATORS_ROOT,
+	CLASS_AsyncGenerator,
+	CLASS_Generator,
+	METHOD_GeneratorMethod,
+	newAsyncGenerator,
+	newGenerator,
+	wrapGeneratorFns,
+	METHOD_Function,
+	METHOD_module_compile,
 }

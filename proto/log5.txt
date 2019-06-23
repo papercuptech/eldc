@@ -1,0 +1,161 @@
+C:\src\node\Release\node.exe --harmony-await-optimization C:\src\eldc\obj\test-node.js
+import: 11.772ms
+install: 0.166ms
+intercept: 0.166ms
+
+entry
+0 run
+r -in  0  to  1
+1 before await loop
+
+
+1 nap prom
+1 new prom
+
+
+
+1 qing  new 1
+r -out 1  to  0
+0 qing  r o 0
+
+job
+0 isForResolver false
+a -new 0  to  1
+
+job
+1 then; user true
+1 new prom
+
+job
+1 isForResolver false
+a -r o 1  to  0
+
+
+0  is 0??
+entry
+
+0 run
+r -in  0  to  1
+1 timer cb
+r -out 1  to  0
+
+job
+0 runRes
+0 qing  rri 1
+rr-in  0  to  1
+rr-out 1  to  0
+0 qing  rro 0
+
+
+
+
+job
+0 isForResolver false
+a -rri 0  to  1
+
+job
+1 after await 1
+---------------------
+1 nap prom
+1 new prom
+
+
+
+
+job
+1 isForResolver true
+
+job-v8
+1 then; user true
+1 new prom
+
+
+
+
+job
+1 isForResolver true
+
+
+
+
+
+
+
+
+
+
+
+
+job
+1 isForResolver false
+a -rro 1  to  0
+
+
+
+
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0 run
+r -in  0  to  1
+1 timer cb
+r -out 1  to  0
+0 runRes
+0 qing  rri 1
+rr-in  0  to  1
+rr-out 1  to  0
+0 qing  rro 0
+0 isForResolver false
+a -rri 0  to  1
+1 after await 2
+1 leaving await loop Two
+1 isForResolver true
+1 isForResolver true
+1 isForResolver false
+a -rro 1  to  0
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+0  is 0??
+
+Process finished with exit code 0

@@ -1,0 +1,1603 @@
+C:\src\node\Release\node.exe --harmony-await-optimization C:\src\eldc\obj\test-node.js
+import: 32.882ms
+install: 0.204ms
+intercept: 0.459ms
+r -in  0  to  1
+pre One === "One.1"
+r -out 1  to  0
+r -in  0  to  2
+pre One === "One"
+r -out 2  to  0
+r -in  0  to  3
+r -out 3  to  0
+r -in  0  to  4
+r -in  4  to  5
+Two bfr await Two
+Two bfr await Two
+Two aft log bfr await Two
+r -out 5  to  4
+One bfr await One
+r -out 4  to  0
+a -new 0  to  1
+a -r o 1  to  0
+a -new 0  to  2
+a -r o 2  to  0
+a -new 0  to  3
+a -r o 3  to  0
+a -new 0  to  5
+a -r o 5  to  4
+a -r o 4  to  0
+0  is 0??
+0  is 0??
+r -in  0  to  1
+r -out 1  to  0
+rr-in  0  to  1
+rr-out 1  to  0
+
+a -rri 0  to  1
+
+	One === "One.2"
+	r -in  1  to  6
+		BFR Sub === "Sub"
+	r -out 6  to  1
+	pre One === "One.3"
+
+a -rro 1  to  0
+
+a -new 0  to  6
+a -r o 6  to  1
+
+a -rro 1  to  0
+
+
+1  is 0??
+
+
+
+
+
+
+
+
+r -in  0  to  2
+r -out 2  to  0
+rr-in  0  to  2
+rr-out 2  to  0
+a -rri 0  to  2
+a -rro 2  to  0
+r -in  0  to  7
+r -out 7  to  0
+r -in  0  to  2
+r -out 2  to  0
+a -new 0  to  7
+a -r o 7  to  0
+a -new 1  to  2
+a -r o 2  to  1
+r -in  1  to  5
+r -out 5  to  1
+rr-in  1  to  5
+rr-out 5  to  1
+a -rri 1  to  5
+Two aft await Two
+a -rro 5  to  1
+1  is 0??
+r -in  1  to  6
+r -out 6  to  1
+rr-in  1  to  6
+rr-out 6  to  1
+a -rri 1  to  6
+AFTSub === "Sub"
+a -rro 6  to  1
+1  is 0??
+r -in  1  to  7
+r -out 7  to  1
+rr-in  1  to  7
+rr-out 7  to  1
+a -rri 1  to  7
+a -rro 7  to  1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+r -in  1  to  2
+r -out 2  to  1
+rr-in  1  to  2
+rr-out 2  to  1
+a -rri 1  to  2
+a -rro 2  to  1
+r -in  1  to  7
+r -out 7  to  1
+r -in  1  to  2
+r -out 2  to  1
+a -new 1  to  7
+a -r o 7  to  1
+a -new 1  to  2
+a -r o 2  to  1
+r -in  1  to  5
+r -out 5  to  1
+rr-in  1  to  5
+rr-out 5  to  1
+a -rri 1  to  5
+Two aft await Two
+a -rro 5  to  1
+1  is 0??
+r -in  1  to  6
+r -out 6  to  1
+rr-in  1  to  6
+rr-out 6  to  1
+a -rri 1  to  6
+AFTSub === "Sub"
+a -rro 6  to  1
+1  is 0??
+r -in  1  to  7
+r -out 7  to  1
+rr-in  1  to  7
+rr-out 7  to  1
+a -rri 1  to  7
+a -rro 7  to  1
+ASSERT FAILED: C.prop === 'Sub-id-0' // 3
+r -in  1  to  8
+r -out 8  to  1
+r -in  1  to  7
+r -out 7  to  1
+a -new 1  to  8
+a -r o 8  to  1
+a -new 1  to  7
+a -r o 7  to  1
+1  is 0??
+pre One === "One.4"
+r -in  1  to  3
+r -out 3  to  1
+rr-in  1  to  3
+rr-out 3  to  1
+a -rri 1  to  3
+a -rro 3  to  1
+ASSERT FAILED: C.prop === 'Two' //9
+r -in  1  to  3
+r -out 3  to  1
+a -new 1  to  3
+a -r o 3  to  1
+1  is 0??
+r -in  1  to  2
+r -out 2  to  1
+rr-in  1  to  2
+rr-out 2  to  1
+a -rri 1  to  2
+a -rro 2  to  1
+r -in  1  to  9
+r -out 9  to  1
+r -in  1  to  2
+r -out 2  to  1
+a -new 1  to  9
+a -r o 9  to  1
+a -new 1  to  2
+a -r o 2  to  1
+r -in  1  to  7
+r -out 7  to  1
+rr-in  1  to  7
+rr-out 7  to  1
+a -rri 1  to  7
+a -rro 7  to  1
+ASSERT FAILED: C.prop === 'Sub-id-0' // 2
+r -in  1  to  10
+r -out 10  to  1
+r -in  1  to  7
+r -out 7  to  1
+a -new 1  to  10
+a -r o 10  to  1
+a -new 1  to  7
+a -r o 7  to  1
+1  is 0??
+r -in  1  to  9
+r -out 9  to  1
+rr-in  1  to  9
+rr-out 9  to  1
+a -rri 1  to  9
+a -rro 9  to  1
+ASSERT FAILED: C.prop === 'Sub-id-1' // 3
+r -in  1  to  11
+r -out 11  to  1
+r -in  1  to  9
+r -out 9  to  1
+a -new 1  to  11
+a -r o 11  to  1
+a -new 1  to  9
+a -r o 9  to  1
+1  is 0??
+r -in  1  to  7
+r -out 7  to  1
+rr-in  1  to  7
+rr-out 7  to  1
+a -rri 1  to  7
+a -rro 7  to  1
+ASSERT FAILED: C.prop === 'Sub-id-0' // 1
+r -in  1  to  12
+r -out 12  to  1
+r -in  1  to  7
+r -out 7  to  1
+a -new 1  to  12
+a -r o 12  to  1
+a -new 1  to  7
+a -r o 7  to  1
+1  is 0??
+r -in  1  to  2
+r -out 2  to  1
+rr-in  1  to  2
+rr-out 2  to  1
+a -rri 1  to  2
+a -rro 2  to  1
+r -in  1  to  13
+r -out 13  to  1
+r -in  1  to  2
+r -out 2  to  1
+a -new 1  to  13
+a -r o 13  to  1
+a -new 1  to  2
+a -r o 2  to  1
+r -in  1  to  9
+r -out 9  to  1
+rr-in  1  to  9
+rr-out 9  to  1
+a -rri 1  to  9
+a -rro 9  to  1
+ASSERT FAILED: C.prop === 'Sub-id-1' // 2
+r -in  1  to  14
+r -out 14  to  1
+r -in  1  to  9
+r -out 9  to  1
+a -new 1  to  14
+a -r o 14  to  1
+a -new 1  to  9
+a -r o 9  to  1
+1  is 0??
+
+r -in  1  to  7
+r -out 7  to  1
+rr-in  1  to  7
+rr-out 7  to  1
+a -rri 1  to  7
+a -rro 7  to  1
+ASSERT FAILED: C.prop === 'Sub-id-0' // 0
+  r -in  1  to  15
+  r -out 15  to  1
+  r -in  1  to  7
+  r -out 7  to  1
+a -new 1  to  15
+a -r o 15  to  1
+a -new 1  to  15
+
+15  is 0??
+
+
+
+
+
+r -in  15  to  8
+r -out 8  to  15
+rr-in  15  to  8
+rr-out 8  to  15
+rr-in  15  to  8
+rr-out 8  to  15
+a -rri 15  to  8
+a -rro 8  to  15
+a -rri 15  to  8
+a -rro 8  to  15
+rr-in  15  to  8
+rr-out 8  to  15
+a -rri 15  to  8
+a -rro 8  to  15
+r -in  15  to  13
+r -out 13  to  15
+rr-in  15  to  13
+rr-out 13  to  15
+a -rri 15  to  13
+a -rro 13  to  15
+ASSERT FAILED: C.prop === 'Sub-id-2' // 3
+r -in  15  to  16
+r -out 16  to  15
+r -in  15  to  13
+r -out 13  to  15
+a -new 15  to  16
+a -r o 16  to  15
+a -new 15  to  13
+a -r o 13  to  15
+r -in  15  to  9
+r -out 9  to  15
+rr-in  15  to  9
+rr-out 9  to  15
+a -rri 15  to  9
+a -rro 9  to  15
+ASSERT FAILED: C.prop === 'Sub-id-1' // 1
+r -in  15  to  17
+r -out 17  to  15
+r -in  15  to  9
+r -out 9  to  15
+a -new 15  to  17
+a -r o 17  to  15
+a -new 15  to  9
+a -r o 9  to  15
+15  is 0??
+r -in  15  to  3
+r -out 3  to  15
+rr-in  15  to  3
+rr-out 3  to  15
+a -rri 15  to  3
+a -rro 3  to  15
+ASSERT FAILED: C.prop === 'Two' //8
+r -in  15  to  3
+r -out 3  to  15
+a -new 15  to  3
+a -r o 3  to  15
+r -in  15  to  2
+r -out 2  to  15
+rr-in  15  to  2
+rr-out 2  to  15
+a -rri 15  to  2
+a -rro 2  to  15
+ASSERT FAILED: C.prop === 'One' // Sub-id-0---SubSUb !== One.6
+r -in  15  to  18
+r -out 18  to  15
+r -in  15  to  2
+r -out 2  to  15
+a -new 15  to  18
+a -r o 18  to  15
+a -new 15  to  2
+a -r o 2  to  15
+15  is 0??
+r -in  15  to  10
+r -out 10  to  15
+rr-in  15  to  10
+rr-out 10  to  15
+rr-in  15  to  10
+rr-out 10  to  15
+a -rri 15  to  10
+a -rro 10  to  15
+a -rri 15  to  10
+a -rro 10  to  15
+rr-in  15  to  10
+rr-out 10  to  15
+a -rri 15  to  10
+a -rro 10  to  15
+r -in  15  to  13
+r -out 13  to  15
+rr-in  15  to  13
+rr-out 13  to  15
+a -rri 15  to  13
+a -rro 13  to  15
+ASSERT FAILED: C.prop === 'Sub-id-2' // 2
+r -in  15  to  19
+r -out 19  to  15
+r -in  15  to  13
+r -out 13  to  15
+a -new 15  to  19
+a -r o 19  to  15
+a -new 15  to  13
+a -r o 13  to  15
+r -in  15  to  11
+r -out 11  to  15
+rr-in  15  to  11
+rr-out 11  to  15
+rr-in  15  to  11
+rr-out 11  to  15
+a -rri 15  to  11
+a -rro 11  to  15
+a -rri 15  to  11
+a -rro 11  to  15
+rr-in  15  to  11
+rr-out 11  to  15
+a -rri 15  to  11
+a -rro 11  to  15
+r -in  15  to  9
+r -out 9  to  15
+rr-in  15  to  9
+rr-out 9  to  15
+a -rri 15  to  9
+a -rro 9  to  15
+ASSERT FAILED: C.prop === 'Sub-id-1' // 0
+r -in  15  to  20
+r -out 20  to  15
+r -in  15  to  9
+r -out 9  to  15
+a -new 15  to  20
+a -r o 20  to  15
+a -new 15  to  20
+r -in  20  to  8
+r -out 8  to  20
+rr-in  20  to  8
+rr-out 8  to  20
+a -rri 20  to  8
+a -rro 8  to  20
+20  is 0??
+r -in  20  to  18
+r -out 18  to  20
+rr-in  20  to  18
+rr-out 18  to  20
+a -rri 20  to  18
+a -rro 18  to  20
+ASSERT FAILED: C.prop === 'Sub-id-3' // 3
+r -in  20  to  21
+r -out 21  to  20
+r -in  20  to  18
+r -out 18  to  20
+a -new 20  to  21
+a -r o 21  to  20
+a -new 20  to  18
+a -r o 18  to  20
+r -in  20  to  12
+r -out 12  to  20
+rr-in  20  to  12
+rr-out 12  to  20
+rr-in  20  to  12
+rr-out 12  to  20
+a -rri 20  to  12
+a -rro 12  to  20
+a -rri 20  to  12
+a -rro 12  to  20
+rr-in  20  to  12
+rr-out 12  to  20
+a -rri 20  to  12
+a -rro 12  to  20
+20  is 0??
+r -in  20  to  13
+r -out 13  to  20
+rr-in  20  to  13
+rr-out 13  to  20
+a -rri 20  to  13
+a -rro 13  to  20
+ASSERT FAILED: C.prop === 'Sub-id-2' // 1
+r -in  20  to  22
+r -out 22  to  20
+r -in  20  to  13
+r -out 13  to  20
+a -new 20  to  22
+a -r o 22  to  20
+a -new 20  to  13
+a -r o 13  to  20
+r -in  20  to  14
+r -out 14  to  20
+rr-in  20  to  14
+rr-out 14  to  20
+rr-in  20  to  14
+rr-out 14  to  20
+a -rri 20  to  14
+a -rro 14  to  20
+a -rri 20  to  14
+a -rro 14  to  20
+rr-in  20  to  14
+rr-out 14  to  20
+a -rri 20  to  14
+a -rro 14  to  20
+r -in  20  to  2
+r -out 2  to  20
+rr-in  20  to  2
+rr-out 2  to  20
+a -rri 20  to  2
+a -rro 2  to  20
+BOOM Sub-id-1---SubSUb Error: BOOM
+    at tick (C:\src\eldc\obj\test-node-genfn.js:44:28)
+    at processTicksAndRejections (internal/process/next_tick.js:81:5)
+    at runNextTicks (internal/process/next_tick.js:51:3)
+    at processTimers (timers.js:268:7)
+ASSERT FAILED: C.prop === 'One'
+ASSERT FAILED: C.prop === 'One'
+20  is 0??
+r -in  20  to  8
+r -out 8  to  20
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // Sub-id-1---SubSUb aft
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 4
+r -in  20  to  8
+r -out 8  to  20
+a -new 20  to  8
+a -r o 8  to  20
+r -in  20  to  18
+r -out 18  to  20
+rr-in  20  to  18
+rr-out 18  to  20
+a -rri 20  to  18
+a -rro 18  to  20
+ASSERT FAILED: C.prop === 'Sub-id-3' // 2
+r -in  20  to  23
+r -out 23  to  20
+r -in  20  to  18
+r -out 18  to  20
+a -new 20  to  23
+a -r o 23  to  20
+a -new 20  to  18
+a -r o 18  to  20
+r -in  20  to  13
+r -out 13  to  20
+rr-in  20  to  13
+rr-out 13  to  20
+a -rri 20  to  13
+a -rro 13  to  20
+ASSERT FAILED: C.prop === 'Sub-id-2' // 0
+r -in  20  to  24
+r -out 24  to  20
+r -in  20  to  13
+r -out 13  to  20
+a -new 20  to  24
+a -r o 24  to  20
+a -new 20  to  24
+r -in  24  to  10
+r -out 10  to  24
+rr-in  24  to  10
+rr-out 10  to  24
+a -rri 24  to  10
+a -rro 10  to  24
+r -in  24  to  11
+r -out 11  to  24
+rr-in  24  to  11
+rr-out 11  to  24
+a -rri 24  to  11
+a -rro 11  to  24
+r -in  24  to  12
+r -out 12  to  24
+rr-in  24  to  12
+rr-out 12  to  24
+a -rri 24  to  12
+a -rro 12  to  24
+r -in  24  to  15
+r -out 15  to  24
+rr-in  24  to  15
+rr-out 15  to  24
+rr-in  24  to  15
+rr-out 15  to  24
+a -rri 24  to  15
+a -rro 15  to  24
+a -rri 24  to  15
+a -rro 15  to  24
+rr-in  24  to  15
+rr-out 15  to  24
+a -rri 24  to  15
+a -rro 15  to  24
+r -in  24  to  16
+r -out 16  to  24
+rr-in  24  to  16
+rr-out 16  to  24
+rr-in  24  to  16
+rr-out 16  to  24
+a -rri 24  to  16
+a -rro 16  to  24
+a -rri 24  to  16
+a -rro 16  to  24
+rr-in  24  to  16
+rr-out 16  to  24
+a -rri 24  to  16
+a -rro 16  to  24
+r -in  24  to  17
+r -out 17  to  24
+rr-in  24  to  17
+rr-out 17  to  24
+rr-in  24  to  17
+rr-out 17  to  24
+a -rri 24  to  17
+a -rro 17  to  24
+a -rri 24  to  17
+a -rro 17  to  24
+rr-in  24  to  17
+rr-out 17  to  24
+a -rri 24  to  17
+a -rro 17  to  24
+24  is 0??
+r -in  24  to  8
+r -out 8  to  24
+rr-in  24  to  8
+rr-out 8  to  24
+a -rri 24  to  8
+a -rro 8  to  24
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 3
+r -in  24  to  8
+r -out 8  to  24
+a -new 24  to  8
+a -r o 8  to  24
+r -in  24  to  18
+r -out 18  to  24
+rr-in  24  to  18
+rr-out 18  to  24
+a -rri 24  to  18
+a -rro 18  to  24
+ASSERT FAILED: C.prop === 'Sub-id-3' // 1
+r -in  24  to  25
+r -out 25  to  24
+r -in  24  to  18
+r -out 18  to  24
+a -new 24  to  25
+a -r o 25  to  24
+a -new 24  to  18
+a -r o 18  to  24
+r -in  24  to  14
+r -out 14  to  24
+rr-in  24  to  14
+rr-out 14  to  24
+a -rri 24  to  14
+a -rro 14  to  24
+r -in  24  to  3
+r -out 3  to  24
+rr-in  24  to  3
+rr-out 3  to  24
+a -rri 24  to  3
+a -rro 3  to  24
+ASSERT FAILED: C.prop === 'Two' //7
+r -in  24  to  3
+r -out 3  to  24
+a -new 24  to  3
+a -r o 3  to  24
+r -in  24  to  19
+r -out 19  to  24
+rr-in  24  to  19
+rr-out 19  to  24
+rr-in  24  to  19
+rr-out 19  to  24
+a -rri 24  to  19
+a -rro 19  to  24
+a -rri 24  to  19
+a -rro 19  to  24
+rr-in  24  to  19
+rr-out 19  to  24
+a -rri 24  to  19
+a -rro 19  to  24
+24  is 0??
+r -in  24  to  10
+r -out 10  to  24
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // Sub-id-2---SubSUb aft
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 4
+r -in  24  to  10
+r -out 10  to  24
+a -new 24  to  10
+a -r o 10  to  24
+r -in  24  to  11
+r -out 11  to  24
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // Sub-id-2---SubSUb aft
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 4
+r -in  24  to  11
+r -out 11  to  24
+a -new 24  to  11
+a -r o 11  to  24
+r -in  24  to  12
+r -out 12  to  24
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // Sub-id-2---SubSUb aft
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 4
+r -in  24  to  12
+r -out 12  to  24
+a -new 24  to  12
+a -r o 12  to  24
+r -in  24  to  20
+r -out 20  to  24
+rr-in  24  to  20
+rr-out 20  to  24
+rr-in  24  to  20
+rr-out 20  to  24
+a -rri 24  to  20
+a -rro 20  to  24
+a -rri 24  to  20
+a -rro 20  to  24
+rr-in  24  to  20
+rr-out 20  to  24
+a -rri 24  to  20
+a -rro 20  to  24
+r -in  24  to  21
+r -out 21  to  24
+rr-in  24  to  21
+rr-out 21  to  24
+rr-in  24  to  21
+rr-out 21  to  24
+a -rri 24  to  21
+a -rro 21  to  24
+a -rri 24  to  21
+a -rro 21  to  24
+rr-in  24  to  21
+rr-out 21  to  24
+a -rri 24  to  21
+a -rro 21  to  24
+24  is 0??
+r -in  24  to  8
+r -out 8  to  24
+rr-in  24  to  8
+rr-out 8  to  24
+a -rri 24  to  8
+a -rro 8  to  24
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 2
+r -in  24  to  8
+r -out 8  to  24
+a -new 24  to  8
+a -r o 8  to  24
+r -in  24  to  18
+r -out 18  to  24
+rr-in  24  to  18
+rr-out 18  to  24
+a -rri 24  to  18
+a -rro 18  to  24
+ASSERT FAILED: C.prop === 'Sub-id-3' // 0
+r -in  24  to  26
+r -out 26  to  24
+r -in  24  to  18
+r -out 18  to  24
+a -new 24  to  26
+a -r o 26  to  24
+a -new 24  to  26
+r -in  26  to  14
+r -out 14  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+a -rri 26  to  24
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // Sub-id-2---SubSUb aft
+a -rro 24  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 4
+r -in  26  to  14
+r -out 14  to  26
+a -new 26  to  14
+a -r o 14  to  26
+r -in  26  to  15
+r -out 15  to  26
+rr-in  26  to  15
+rr-out 15  to  26
+a -rri 26  to  15
+a -rro 15  to  26
+r -in  26  to  16
+r -out 16  to  26
+rr-in  26  to  16
+rr-out 16  to  26
+a -rri 26  to  16
+a -rro 16  to  26
+r -in  26  to  22
+r -out 22  to  26
+rr-in  26  to  22
+rr-out 22  to  26
+rr-in  26  to  22
+rr-out 22  to  26
+a -rri 26  to  22
+a -rro 22  to  26
+a -rri 26  to  22
+a -rro 22  to  26
+rr-in  26  to  22
+rr-out 22  to  26
+a -rri 26  to  22
+a -rro 22  to  26
+26  is 0??
+r -in  26  to  17
+r -out 17  to  26
+rr-in  26  to  17
+rr-out 17  to  26
+a -rri 26  to  17
+a -rro 17  to  26
+r -in  26  to  10
+r -out 10  to  26
+rr-in  26  to  10
+rr-out 10  to  26
+a -rri 26  to  10
+a -rro 10  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 3
+r -in  26  to  10
+r -out 10  to  26
+a -new 26  to  10
+a -r o 10  to  26
+r -in  26  to  11
+r -out 11  to  26
+rr-in  26  to  11
+rr-out 11  to  26
+a -rri 26  to  11
+a -rro 11  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 3
+r -in  26  to  11
+r -out 11  to  26
+a -new 26  to  11
+a -r o 11  to  26
+r -in  26  to  12
+r -out 12  to  26
+rr-in  26  to  12
+rr-out 12  to  26
+a -rri 26  to  12
+a -rro 12  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 3
+r -in  26  to  12
+r -out 12  to  26
+a -new 26  to  12
+a -r o 12  to  26
+r -in  26  to  19
+r -out 19  to  26
+rr-in  26  to  19
+rr-out 19  to  26
+a -rri 26  to  19
+a -rro 19  to  26
+r -in  26  to  8
+r -out 8  to  26
+rr-in  26  to  8
+rr-out 8  to  26
+a -rri 26  to  8
+a -rro 8  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 1
+r -in  26  to  8
+r -out 8  to  26
+a -new 26  to  8
+a -r o 8  to  26
+r -in  26  to  14
+r -out 14  to  26
+rr-in  26  to  14
+rr-out 14  to  26
+a -rri 26  to  14
+a -rro 14  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 3
+r -in  26  to  14
+r -out 14  to  26
+a -new 26  to  14
+a -r o 14  to  26
+r -in  26  to  15
+r -out 15  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // Sub-id-3---SubSUb aft
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 4
+r -in  26  to  15
+r -out 15  to  26
+a -new 26  to  15
+a -r o 15  to  26
+r -in  26  to  16
+r -out 16  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // Sub-id-3---SubSUb aft
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 4
+r -in  26  to  16
+r -out 16  to  26
+a -new 26  to  16
+a -r o 16  to  26
+r -in  26  to  23
+r -out 23  to  26
+rr-in  26  to  23
+rr-out 23  to  26
+rr-in  26  to  23
+rr-out 23  to  26
+a -rri 26  to  23
+a -rro 23  to  26
+a -rri 26  to  23
+a -rro 23  to  26
+rr-in  26  to  23
+rr-out 23  to  26
+a -rri 26  to  23
+a -rro 23  to  26
+r -in  26  to  24
+r -out 24  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+a -rri 26  to  24
+a -rro 24  to  26
+a -rri 26  to  24
+a -rro 24  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+a -rri 26  to  24
+a -rro 24  to  26
+r -in  26  to  20
+r -out 20  to  26
+rr-in  26  to  20
+rr-out 20  to  26
+a -rri 26  to  20
+a -rro 20  to  26
+r -in  26  to  21
+r -out 21  to  26
+rr-in  26  to  21
+rr-out 21  to  26
+a -rri 26  to  21
+a -rro 21  to  26
+r -in  26  to  17
+r -out 17  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // Sub-id-3---SubSUb aft
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 4
+r -in  26  to  17
+r -out 17  to  26
+a -new 26  to  17
+a -r o 17  to  26
+r -in  26  to  10
+r -out 10  to  26
+rr-in  26  to  10
+rr-out 10  to  26
+a -rri 26  to  10
+a -rro 10  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 2
+r -in  26  to  10
+r -out 10  to  26
+a -new 26  to  10
+a -r o 10  to  26
+r -in  26  to  11
+r -out 11  to  26
+rr-in  26  to  11
+rr-out 11  to  26
+a -rri 26  to  11
+a -rro 11  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 2
+r -in  26  to  11
+r -out 11  to  26
+a -new 26  to  11
+a -r o 11  to  26
+r -in  26  to  12
+r -out 12  to  26
+rr-in  26  to  12
+rr-out 12  to  26
+a -rri 26  to  12
+a -rro 12  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 2
+r -in  26  to  12
+r -out 12  to  26
+a -new 26  to  12
+a -r o 12  to  26
+r -in  26  to  19
+r -out 19  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // Sub-id-3---SubSUb aft
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 4
+r -in  26  to  19
+r -out 19  to  26
+a -new 26  to  19
+a -r o 19  to  26
+r -in  26  to  22
+r -out 22  to  26
+rr-in  26  to  22
+rr-out 22  to  26
+a -rri 26  to  22
+a -rro 22  to  26
+r -in  26  to  8
+r -out 8  to  26
+rr-in  26  to  8
+rr-out 8  to  26
+a -rri 26  to  8
+a -rro 8  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 0
+r -in  26  to  8
+r -out 8  to  26
+rr-in  26  to  15
+rr-out 15  to  26
+a -rri 26  to  15
+a -rro 15  to  26
+r -in  26  to  14
+r -out 14  to  26
+rr-in  26  to  14
+rr-out 14  to  26
+a -rri 26  to  14
+a -rro 14  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 2
+r -in  26  to  14
+r -out 14  to  26
+a -new 26  to  14
+a -r o 14  to  26
+r -in  26  to  15
+r -out 15  to  26
+rr-in  26  to  15
+rr-out 15  to  26
+a -rri 26  to  15
+a -rro 15  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 3
+r -in  26  to  15
+r -out 15  to  26
+a -new 26  to  15
+a -r o 15  to  26
+r -in  26  to  16
+r -out 16  to  26
+rr-in  26  to  16
+rr-out 16  to  26
+a -rri 26  to  16
+a -rro 16  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 3
+r -in  26  to  16
+r -out 16  to  26
+a -new 26  to  16
+a -r o 16  to  26
+r -in  26  to  20
+r -out 20  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // Sub-id-3---SubSUb aft
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 4
+r -in  26  to  20
+r -out 20  to  26
+a -new 26  to  20
+a -r o 20  to  26
+r -in  26  to  25
+r -out 25  to  26
+rr-in  26  to  25
+rr-out 25  to  26
+rr-in  26  to  25
+rr-out 25  to  26
+a -rri 26  to  25
+a -rro 25  to  26
+a -rri 26  to  25
+a -rro 25  to  26
+rr-in  26  to  25
+rr-out 25  to  26
+a -rri 26  to  25
+a -rro 25  to  26
+r -in  26  to  21
+r -out 21  to  26
+r -in  26  to  21
+r -out 21  to  26
+a -new 26  to  21
+a -r o 21  to  26
+r -in  26  to  17
+r -out 17  to  26
+rr-in  26  to  17
+rr-out 17  to  26
+a -rri 26  to  17
+a -rro 17  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 3
+r -in  26  to  17
+r -out 17  to  26
+a -new 26  to  17
+a -r o 17  to  26
+r -in  26  to  10
+r -out 10  to  26
+rr-in  26  to  10
+rr-out 10  to  26
+a -rri 26  to  10
+a -rro 10  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 1
+r -in  26  to  10
+r -out 10  to  26
+a -new 26  to  10
+a -r o 10  to  26
+r -in  26  to  11
+r -out 11  to  26
+rr-in  26  to  11
+rr-out 11  to  26
+a -rri 26  to  11
+a -rro 11  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 1
+r -in  26  to  11
+r -out 11  to  26
+a -new 26  to  11
+a -r o 11  to  26
+r -in  26  to  12
+r -out 12  to  26
+rr-in  26  to  12
+rr-out 12  to  26
+a -rri 26  to  12
+a -rro 12  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 1
+r -in  26  to  12
+r -out 12  to  26
+a -new 26  to  12
+a -r o 12  to  26
+r -in  26  to  19
+r -out 19  to  26
+rr-in  26  to  19
+rr-out 19  to  26
+a -rri 26  to  19
+a -rro 19  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 3
+r -in  26  to  19
+r -out 19  to  26
+a -new 26  to  19
+a -r o 19  to  26
+r -in  26  to  22
+r -out 22  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // Sub-id-3---SubSUb aft
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 4
+r -in  26  to  22
+r -out 22  to  26
+a -new 26  to  22
+a -r o 22  to  26
+r -in  26  to  3
+r -out 3  to  26
+rr-in  26  to  3
+rr-out 3  to  26
+a -rri 26  to  3
+a -rro 3  to  26
+BOOM Sub-id-3---SubSUb Error: BOOM
+    at tick (C:\src\eldc\obj\test-node-genfn.js:44:28)
+    at processTicksAndRejections (internal/process/next_tick.js:81:5)
+ASSERT FAILED: C.prop === 'Two'
+ASSERT FAILED: C.prop === 'Two' //finally
+r -in  26  to  23
+r -out 23  to  26
+rr-in  26  to  23
+rr-out 23  to  26
+a -rri 26  to  23
+a -rro 23  to  26
+r -in  26  to  24
+r -out 24  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+a -rri 26  to  24
+a -rro 24  to  26
+r -in  26  to  14
+r -out 14  to  26
+rr-in  26  to  14
+rr-out 14  to  26
+a -rri 26  to  14
+a -rro 14  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 1
+r -in  26  to  14
+r -out 14  to  26
+a -new 26  to  14
+a -r o 14  to  26
+r -in  26  to  15
+r -out 15  to  26
+rr-in  26  to  15
+rr-out 15  to  26
+a -rri 26  to  15
+a -rro 15  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 2
+r -in  26  to  15
+r -out 15  to  26
+a -new 26  to  15
+a -r o 15  to  26
+r -in  26  to  16
+r -out 16  to  26
+rr-in  26  to  16
+rr-out 16  to  26
+a -rri 26  to  16
+a -rro 16  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 2
+r -in  26  to  16
+r -out 16  to  26
+a -new 26  to  16
+a -r o 16  to  26
+r -in  26  to  20
+r -out 20  to  26
+rr-in  26  to  20
+rr-out 20  to  26
+a -rri 26  to  20
+a -rro 20  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 3
+r -in  26  to  20
+r -out 20  to  26
+a -new 26  to  20
+a -r o 20  to  26
+r -in  26  to  21
+r -out 21  to  26
+rr-in  26  to  21
+rr-out 21  to  26
+a -rri 26  to  21
+a -rro 21  to  26
+r -in  26  to  21
+r -out 21  to  26
+a -new 26  to  21
+a -r o 21  to  26
+r -in  26  to  17
+r -out 17  to  26
+rr-in  26  to  17
+rr-out 17  to  26
+a -rri 26  to  17
+a -rro 17  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 2
+r -in  26  to  17
+r -out 17  to  26
+a -new 26  to  17
+a -r o 17  to  26
+r -in  26  to  10
+r -out 10  to  26
+rr-in  26  to  10
+rr-out 10  to  26
+a -rri 26  to  10
+a -rro 10  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 0
+r -in  26  to  10
+r -out 10  to  26
+rr-in  26  to  15
+rr-out 15  to  26
+a -rri 26  to  15
+a -rro 15  to  26
+r -in  26  to  11
+r -out 11  to  26
+rr-in  26  to  11
+rr-out 11  to  26
+a -rri 26  to  11
+a -rro 11  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 0
+r -in  26  to  11
+r -out 11  to  26
+rr-in  26  to  15
+rr-out 15  to  26
+a -rri 26  to  15
+a -rro 15  to  26
+r -in  26  to  12
+r -out 12  to  26
+rr-in  26  to  12
+rr-out 12  to  26
+a -rri 26  to  12
+a -rro 12  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 0
+r -in  26  to  12
+r -out 12  to  26
+rr-in  26  to  20
+rr-out 20  to  26
+a -rri 26  to  20
+a -rro 20  to  26
+r -in  26  to  19
+r -out 19  to  26
+rr-in  26  to  19
+rr-out 19  to  26
+a -rri 26  to  19
+a -rro 19  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 2
+r -in  26  to  19
+r -out 19  to  26
+a -new 26  to  19
+a -r o 19  to  26
+r -in  26  to  22
+r -out 22  to  26
+rr-in  26  to  22
+rr-out 22  to  26
+a -rri 26  to  22
+a -rro 22  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 3
+r -in  26  to  22
+r -out 22  to  26
+a -new 26  to  22
+a -r o 22  to  26
+r -in  26  to  4
+r -out 4  to  26
+rr-in  26  to  4
+rr-out 4  to  26
+a -rri 26  to  4
+One aft await One
+a -rro 4  to  26
+r -in  26  to  25
+r -out 25  to  26
+rr-in  26  to  25
+rr-out 25  to  26
+a -rri 26  to  25
+a -rro 25  to  26
+r -in  26  to  23
+r -out 23  to  26
+r -in  26  to  23
+r -out 23  to  26
+a -new 26  to  23
+a -r o 23  to  26
+r -in  26  to  24
+r -out 24  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // Sub-id-3---SubSUb aft
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 4
+r -in  26  to  24
+r -out 24  to  26
+a -new 26  to  24
+a -r o 24  to  26
+r -in  26  to  14
+r -out 14  to  26
+rr-in  26  to  14
+rr-out 14  to  26
+a -rri 26  to  14
+a -rro 14  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 0
+r -in  26  to  14
+r -out 14  to  26
+rr-in  26  to  20
+rr-out 20  to  26
+a -rri 26  to  20
+a -rro 20  to  26
+r -in  26  to  15
+r -out 15  to  26
+rr-in  26  to  15
+rr-out 15  to  26
+a -rri 26  to  15
+a -rro 15  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 1
+r -in  26  to  15
+r -out 15  to  26
+a -new 26  to  15
+a -r o 15  to  26
+r -in  26  to  16
+r -out 16  to  26
+rr-in  26  to  16
+rr-out 16  to  26
+a -rri 26  to  16
+a -rro 16  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 1
+r -in  26  to  16
+r -out 16  to  26
+a -new 26  to  16
+a -r o 16  to  26
+r -in  26  to  20
+r -out 20  to  26
+rr-in  26  to  20
+rr-out 20  to  26
+a -rri 26  to  20
+a -rro 20  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 2
+r -in  26  to  20
+r -out 20  to  26
+a -new 26  to  20
+a -r o 20  to  26
+r -in  26  to  21
+r -out 21  to  26
+rr-in  26  to  21
+rr-out 21  to  26
+a -rri 26  to  21
+a -rro 21  to  26
+r -in  26  to  21
+r -out 21  to  26
+a -new 26  to  21
+a -r o 21  to  26
+r -in  26  to  17
+r -out 17  to  26
+rr-in  26  to  17
+rr-out 17  to  26
+a -rri 26  to  17
+a -rro 17  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 1
+r -in  26  to  17
+r -out 17  to  26
+a -new 26  to  17
+a -r o 17  to  26
+r -in  26  to  19
+r -out 19  to  26
+rr-in  26  to  19
+rr-out 19  to  26
+a -rri 26  to  19
+a -rro 19  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 1
+r -in  26  to  19
+r -out 19  to  26
+a -new 26  to  19
+a -r o 19  to  26
+r -in  26  to  22
+r -out 22  to  26
+rr-in  26  to  22
+rr-out 22  to  26
+a -rri 26  to  22
+a -rro 22  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 2
+r -in  26  to  22
+r -out 22  to  26
+a -new 26  to  22
+a -r o 22  to  26
+r -in  26  to  25
+r -out 25  to  26
+r -in  26  to  25
+r -out 25  to  26
+a -new 26  to  25
+a -r o 25  to  26
+r -in  26  to  23
+r -out 23  to  26
+rr-in  26  to  23
+rr-out 23  to  26
+a -rri 26  to  23
+a -rro 23  to  26
+r -in  26  to  23
+r -out 23  to  26
+a -new 26  to  23
+a -r o 23  to  26
+r -in  26  to  24
+r -out 24  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+a -rri 26  to  24
+a -rro 24  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 3
+r -in  26  to  24
+r -out 24  to  26
+a -new 26  to  24
+a -r o 24  to  26
+r -in  26  to  15
+r -out 15  to  26
+rr-in  26  to  15
+rr-out 15  to  26
+a -rri 26  to  15
+a -rro 15  to  26
+ASSERT FAILED: C.prop === 'Sub-id-0---SubSUb' // 0
+r -in  26  to  15
+r -out 15  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+a -rri 26  to  24
+a -rro 24  to  26
+r -in  26  to  16
+r -out 16  to  26
+rr-in  26  to  16
+rr-out 16  to  26
+a -rri 26  to  16
+a -rro 16  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 0
+r -in  26  to  16
+r -out 16  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+a -rri 26  to  24
+a -rro 24  to  26
+r -in  26  to  20
+r -out 20  to  26
+rr-in  26  to  20
+rr-out 20  to  26
+a -rri 26  to  20
+a -rro 20  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 1
+r -in  26  to  20
+r -out 20  to  26
+a -new 26  to  20
+a -r o 20  to  26
+r -in  26  to  21
+r -out 21  to  26
+rr-in  26  to  21
+rr-out 21  to  26
+a -rri 26  to  21
+a -rro 21  to  26
+r -in  26  to  21
+r -out 21  to  26
+a -new 26  to  21
+a -r o 21  to  26
+r -in  26  to  17
+r -out 17  to  26
+rr-in  26  to  17
+rr-out 17  to  26
+a -rri 26  to  17
+a -rro 17  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 0
+r -in  26  to  17
+r -out 17  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+a -rri 26  to  24
+a -rro 24  to  26
+r -in  26  to  19
+r -out 19  to  26
+rr-in  26  to  19
+rr-out 19  to  26
+a -rri 26  to  19
+a -rro 19  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 0
+r -in  26  to  19
+r -out 19  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+a -rri 26  to  24
+a -rro 24  to  26
+r -in  26  to  22
+r -out 22  to  26
+rr-in  26  to  22
+rr-out 22  to  26
+a -rri 26  to  22
+a -rro 22  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 1
+r -in  26  to  22
+r -out 22  to  26
+a -new 26  to  22
+a -r o 22  to  26
+r -in  26  to  25
+r -out 25  to  26
+rr-in  26  to  25
+rr-out 25  to  26
+a -rri 26  to  25
+a -rro 25  to  26
+r -in  26  to  25
+r -out 25  to  26
+a -new 26  to  25
+a -r o 25  to  26
+r -in  26  to  23
+r -out 23  to  26
+rr-in  26  to  23
+rr-out 23  to  26
+a -rri 26  to  23
+a -rro 23  to  26
+r -in  26  to  23
+r -out 23  to  26
+a -new 26  to  23
+a -r o 23  to  26
+r -in  26  to  24
+r -out 24  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+a -rri 26  to  24
+a -rro 24  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 2
+r -in  26  to  24
+r -out 24  to  26
+a -new 26  to  24
+a -r o 24  to  26
+r -in  26  to  20
+r -out 20  to  26
+rr-in  26  to  20
+rr-out 20  to  26
+a -rri 26  to  20
+a -rro 20  to  26
+ASSERT FAILED: C.prop === 'Sub-id-1---SubSUb' // 0
+r -in  26  to  20
+r -out 20  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+a -rri 26  to  24
+a -rro 24  to  26
+r -in  26  to  21
+r -out 21  to  26
+rr-in  26  to  21
+rr-out 21  to  26
+a -rri 26  to  21
+a -rro 21  to  26
+r -in  26  to  21
+r -out 21  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+a -rri 26  to  24
+a -rro 24  to  26
+r -in  26  to  22
+r -out 22  to  26
+rr-in  26  to  22
+rr-out 22  to  26
+a -rri 26  to  22
+a -rro 22  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 0
+r -in  26  to  22
+r -out 22  to  26
+r -in  26  to  25
+r -out 25  to  26
+rr-in  26  to  25
+rr-out 25  to  26
+a -rri 26  to  25
+a -rro 25  to  26
+r -in  26  to  25
+r -out 25  to  26
+a -new 26  to  25
+a -r o 25  to  26
+r -in  26  to  23
+r -out 23  to  26
+rr-in  26  to  23
+rr-out 23  to  26
+a -rri 26  to  23
+a -rro 23  to  26
+r -in  26  to  23
+r -out 23  to  26
+a -new 26  to  23
+a -r o 23  to  26
+r -in  26  to  24
+r -out 24  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+a -rri 26  to  24
+a -rro 24  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 1
+r -in  26  to  24
+r -out 24  to  26
+a -new 26  to  24
+a -r o 24  to  26
+r -in  26  to  25
+r -out 25  to  26
+rr-in  26  to  25
+rr-out 25  to  26
+a -rri 26  to  25
+a -rro 25  to  26
+r -in  26  to  25
+r -out 25  to  26
+a -new 26  to  25
+a -r o 25  to  26
+r -in  26  to  23
+r -out 23  to  26
+rr-in  26  to  23
+rr-out 23  to  26
+a -rri 26  to  23
+a -rro 23  to  26
+r -in  26  to  23
+r -out 23  to  26
+r -in  26  to  24
+r -out 24  to  26
+rr-in  26  to  24
+rr-out 24  to  26
+a -rri 26  to  24
+a -rro 24  to  26
+ASSERT FAILED: C.prop === 'Sub-id-2---SubSUb' // 0
+r -in  26  to  24
+r -out 24  to  26
+r -in  26  to  25
+r -out 25  to  26
+rr-in  26  to  25
+rr-out 25  to  26
+a -rri 26  to  25
+a -rro 25  to  26
+r -in  26  to  25
+r -out 25  to  26
+
+Process finished with exit code 0
